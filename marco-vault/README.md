@@ -1,0 +1,60 @@
+# Marco Vault
+
+SplashID 스타일의 **로컬 비밀번호 관리자** (Windows용). Electron으로 만들어졌으며 모든 데이터는 내 PC 안에만 암호화되어 저장됩니다.
+
+## 기능
+
+- **마스터 비밀번호 잠금** : 하나의 마스터 비밀번호로 전체 볼트를 잠그고 풉니다.
+- **항목 종류별 템플릿** : 웹 로그인, 은행 계좌, 신용카드, 멤버십, 신분증/문서, Wi‑Fi, 서버/DB, 보안 메모
+- **카테고리 / 즐겨찾기 / 최근 수정** 으로 분류하고, 제목·아이디·주소·메모를 즉시 검색
+- **비밀번호 가리기·보기·복사** : 복사한 값은 설정한 시간(기본 30초) 뒤 클립보드에서 자동 삭제
+- **비밀번호 생성기** : 길이, 대·소문자, 숫자, 특수문자, 혼동 문자 제외 옵션
+- **자동 잠금** : 일정 시간 미사용 시(기본 5분) 또는 창 최소화 시 자동으로 잠김
+- **마스터 비밀번호 변경**, **CSV 내보내기/가져오기**(백업·이전용)
+- 단축키 : `Ctrl+N` 새 항목, `Ctrl+F` 검색, `Ctrl+S` 저장, `Ctrl+L` 잠금, `Esc` 편집 취소
+
+## 보안 구조
+
+| 항목 | 내용 |
+|---|---|
+| 키 유도 | scrypt (N=2^15, r=8, p=1), 16바이트 랜덤 salt |
+| 암호화 | AES‑256‑GCM (무결성 검증 포함) |
+| 저장 위치 | `%APPDATA%\marco-vault\vault.mv` |
+| 메모리 | 잠금 시 키를 0으로 덮어쓰고 폐기 |
+| 렌더러 격리 | contextIsolation + sandbox, Node 접근 불가, IPC로만 통신 |
+
+마스터 비밀번호를 잊으면 **복구할 방법이 없습니다.**
+
+## 설치 (Windows)
+
+1. `MarcoVault-Setup-1.0.0.exe` 를 실행합니다.
+2. 설치 폴더를 고른 뒤 설치하면 바탕화면과 시작 메뉴에 바로가기가 생깁니다.
+3. 첫 실행에서 마스터 비밀번호(8자 이상)를 만들면 바로 사용할 수 있습니다.
+
+> 코드 서명이 되어 있지 않아 Windows SmartScreen 경고가 뜰 수 있습니다. 「추가 정보 → 실행」을 누르면 됩니다.
+
+## 개발 / 빌드
+
+```bash
+cd marco-vault
+npm install          # Electron + electron-builder 설치
+npm start            # 개발 모드 실행
+npm test             # 암호화·CSV 단위 테스트
+npm run dist:win     # Windows 설치 파일 생성 → dist/MarcoVault-Setup-<버전>.exe
+```
+
+Windows PC에서 그대로 빌드됩니다. Linux/macOS에서 Windows 설치 파일을 만들려면 `wine`(32비트 포함)이 필요합니다.
+
+## 폴더 구조
+
+```
+marco-vault/
+├─ src/
+│  ├─ main.js      # Electron 메인 프로세스, IPC, 클립보드, 파일 대화상자
+│  ├─ preload.js   # 렌더러에 노출하는 안전한 API
+│  ├─ vault.js     # scrypt + AES-256-GCM 볼트 파일 암호화/복호화
+│  └─ csv.js       # CSV 내보내기/가져오기
+├─ renderer/       # 화면 (index.html, style.css, app.js)
+├─ test/           # node:test 단위 테스트
+└─ build/          # 앱 아이콘
+```

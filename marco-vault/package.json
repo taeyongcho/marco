@@ -1,0 +1,58 @@
+{
+  "name": "marco-vault",
+  "productName": "Marco Vault",
+  "version": "1.0.0",
+  "description": "SplashID 스타일의 로컬 비밀번호 관리자 (Windows)",
+  "main": "src/main.js",
+  "author": "marco",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.js",
+    "dist:win": "electron-builder --win --x64",
+    "dist:win:portable": "electron-builder --win portable --x64"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "kr.marco.vault",
+    "productName": "Marco Vault",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "renderer/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "MarcoVault-Setup-${version}.${ext}",
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Marco Vault",
+      "language": "1042"
+    },
+    "portable": {
+      "artifactName": "MarcoVault-Portable-${version}.${ext}"
+    },
+    "publish": null
+  }
+}
