@@ -111,3 +111,19 @@ dialog h3 { margin: 0 0 4px; font-size: 14px; }
 .checks label { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
 .checks input { width: auto; }
 input[type=range] { width: 100%; }
+
+/* 주메뉴 편집기 */
+dialog.wide { width: 860px; }
+.menu-editor { display: grid; grid-template-columns: 200px 1fr; gap: 16px; min-height: 340px; }
+.me-left { border-right: 1px solid var(--border); padding-right: 12px; }
+.me-left button { width: 100%; margin-top: 8px; }
+.me-right .row { align-items: center; margin-bottom: 10px; }
+.me-right .row select { width: 70px; }
+.me-right .row button { white-space: nowrap; }
+#me-fields { width: 100%; border-collapse: collapse; font-size: 13px; }
+#me-fields th { text-align: left; color: var(--muted); font-weight: normal; font-size: 12px; padding: 4px 6px; border-bottom: 1px solid var(--border); }
+#me-fields td { padding: 4px 6px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+#me-fields td:last-child { white-space: nowrap; }
+#me-fields input, #me-fields select { padding: 4px 6px; }
+#me-add-field { margin-top: 8px; }
+.sidebar h3 button.icon { font-size: 11px; color: var(--accent); }

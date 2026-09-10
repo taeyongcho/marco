@@ -60,7 +60,7 @@
         <li data-view="favorites">★ 즐겨찾기</li>
         <li data-view="recent">최근 수정</li>
       </ul>
-      <h3>종류</h3>
+      <h3>주메뉴 <button id="btn-edit-menus" class="icon" title="주메뉴/항목 편집">Edit</button></h3>
       <ul id="nav-types" class="nav"></ul>
       <h3>카테고리 <button id="btn-add-category" class="icon" title="카테고리 추가">＋</button></h3>
       <ul id="nav-categories" class="nav"></ul>
@@ -143,6 +143,32 @@
       <button type="submit" class="primary">저장</button>
     </div>
   </form>
+</dialog>
+
+<!-- 주메뉴 편집 (Edit) -->
+<dialog id="dlg-menus" class="wide">
+  <h2>주메뉴 편집</h2>
+  <p class="muted tiny">주메뉴를 추가하고, 각 주메뉴에 들어갈 항목(입력 칸)을 자유롭게 구성할 수 있습니다. 변경 내용은 즉시 저장됩니다.</p>
+  <div class="menu-editor">
+    <div class="me-left">
+      <ul id="me-menus" class="nav"></ul>
+      <button type="button" id="me-add-menu">＋ 주메뉴 추가</button>
+    </div>
+    <div class="me-right">
+      <div class="row">
+        <select id="me-icon" title="아이콘"></select>
+        <input type="text" id="me-label" placeholder="주메뉴 이름" maxlength="20">
+        <button type="button" id="me-del-menu" class="danger" title="주메뉴 삭제">삭제</button>
+      </div>
+      <table id="me-fields">
+        <thead><tr><th>항목 이름</th><th>형식</th><th>선택지 (형식이 선택일 때, 쉼표로 구분)</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <button type="button" id="me-add-field">＋ 항목 추가</button>
+      <p class="muted tiny">Memo(메모)는 모든 주메뉴에 기본으로 포함됩니다.</p>
+    </div>
+  </div>
+  <div class="dialog-actions"><button type="button" id="me-close" class="primary">닫기</button></div>
 </dialog>
 
 <!-- 카테고리 추가 -->
