@@ -8,97 +8,107 @@
 </head>
 <body>
 
-<!-- 초기 설정 / 잠금 해제 화면 -->
+<!-- 인증 화면 -->
 <section id="screen-auth" class="screen auth">
+  <div class="auth-bg"></div>
   <div class="auth-card">
-    <div class="logo">🔐</div>
+    <div class="logo-wrap"><div class="logo">🔐</div></div>
     <h1>Marco Vault</h1>
     <p id="auth-subtitle" class="muted"></p>
 
     <form id="form-setup" hidden autocomplete="off">
       <label>마스터 비밀번호 <span class="muted">(8자 이상)</span>
-        <input type="password" id="setup-pw" required minlength="8" autofocus>
+        <div class="pw-wrap"><input type="password" id="setup-pw" required minlength="8"><button type="button" class="icon eye" data-eye-for="setup-pw" title="보기">👁</button></div>
       </label>
       <label>마스터 비밀번호 확인
         <input type="password" id="setup-pw2" required minlength="8">
       </label>
       <div class="strength"><div id="setup-strength"></div></div>
       <p class="warn">마스터 비밀번호를 잊으면 데이터를 복구할 방법이 없습니다.</p>
-      <button type="submit" class="primary">볼트 만들기</button>
+      <button type="submit" class="primary big">볼트 만들기</button>
+      <button type="button" id="btn-open-existing" class="ghost big">기존 볼트 파일 열기…</button>
     </form>
 
     <form id="form-unlock" hidden autocomplete="off">
       <label>마스터 비밀번호
-        <input type="password" id="unlock-pw" required autofocus>
+        <div class="pw-wrap"><input type="password" id="unlock-pw" required><button type="button" class="icon eye" data-eye-for="unlock-pw" title="보기">👁</button></div>
       </label>
-      <button type="submit" class="primary">잠금 해제</button>
+      <button type="submit" class="primary big">잠금 해제</button>
     </form>
 
+    <div id="auth-missing" hidden>
+      <p class="error">볼트 파일을 찾을 수 없습니다. USB나 클라우드 폴더가 연결되어 있는지 확인하세요.</p>
+      <button type="button" id="btn-open-existing2" class="ghost big">다른 볼트 파일 열기…</button>
+      <button type="button" id="btn-use-default" class="ghost big">기본 위치의 볼트 사용</button>
+    </div>
+
     <p id="auth-error" class="error" hidden></p>
-    <p class="muted tiny" id="auth-path"></p>
+    <p class="muted tiny path" id="auth-path"></p>
   </div>
 </section>
 
 <!-- 메인 화면 -->
 <section id="screen-main" class="screen main" hidden>
-  <header class="topbar">
-    <div class="brand">🔐 Marco Vault</div>
-    <input type="search" id="search" placeholder="검색 (제목, 아이디, 주소, 메모)  Ctrl+F">
-    <div class="topbar-actions">
-      <button id="btn-new" class="primary" title="새 항목 (Ctrl+N)">＋ 새 항목</button>
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-logo">🔐</span><span>Marco Vault</span></div>
+    <button id="btn-new" class="primary new-btn" title="새 항목 (Ctrl+N)">＋ 새 항목</button>
+
+    <div class="sidebar-scroll">
+    <h3>보기</h3>
+    <ul id="nav-views" class="nav">
+      <li data-view="all" class="active"><span>🗂 전체 항목</span><span class="count" id="count-all"></span></li>
+      <li data-view="favorites"><span>⭐ 즐겨찾기</span><span class="count" id="count-fav"></span></li>
+      <li data-view="upcoming"><span>🔔 다가오는 일정</span><span class="count badge" id="count-upcoming"></span></li>
+      <li data-view="recent"><span>🕘 최근 수정</span></li>
+    </ul>
+
+    <h3>주메뉴 <button id="btn-edit-menus" class="icon" title="주메뉴/항목 편집">Edit</button></h3>
+    <ul id="nav-types" class="nav"></ul>
+
+    <h3>카테고리 <button id="btn-add-category" class="icon" title="카테고리 추가">＋</button></h3>
+    <ul id="nav-categories" class="nav"></ul>
+    </div>
+
+    <div class="sidebar-bottom">
       <button id="btn-generator" title="비밀번호 생성기">🎲 생성기</button>
       <button id="btn-settings" title="설정">⚙ 설정</button>
-      <button id="btn-lock" title="잠금 (Ctrl+L)">🔒 잠금</button>
+      <button id="btn-lock" title="잠금 (Ctrl+L)">🔒</button>
     </div>
-  </header>
+  </aside>
 
-  <div class="body">
-    <aside class="sidebar">
-      <h3>보기</h3>
-      <ul id="nav-views" class="nav">
-        <li data-view="all" class="active">전체 항목</li>
-        <li data-view="favorites">★ 즐겨찾기</li>
-        <li data-view="recent">최근 수정</li>
-      </ul>
-      <h3>주메뉴 <button id="btn-edit-menus" class="icon" title="주메뉴/항목 편집">Edit</button></h3>
-      <ul id="nav-types" class="nav"></ul>
-      <h3>카테고리 <button id="btn-add-category" class="icon" title="카테고리 추가">＋</button></h3>
-      <ul id="nav-categories" class="nav"></ul>
-    </aside>
+  <section class="list">
+    <div class="list-toolbar">
+      <div class="search-wrap"><span class="search-ico">🔍</span><input type="search" id="search" placeholder="검색  (Ctrl+F)"></div>
+      <select id="sort" title="정렬">
+        <option value="title">이름순</option>
+        <option value="updated">최근 수정순</option>
+        <option value="created">최근 추가순</option>
+        <option value="fav">즐겨찾기 우선</option>
+        <option value="dday">D-day 순</option>
+      </select>
+      <button id="btn-viewmode" class="icon" title="목록 표시 방식">☰</button>
+    </div>
+    <div class="list-header"><span id="list-title">전체 항목</span><span id="list-count" class="muted"></span></div>
+    <ul id="records"></ul>
+    <div id="list-empty" class="empty" hidden><div class="empty-ico">🗃</div><p>항목이 없습니다.<br><b>＋ 새 항목</b>으로 추가하세요.</p></div>
+  </section>
 
-    <section class="list">
-      <div class="list-header">
-        <span id="list-title">전체 항목</span>
-        <span id="list-count" class="muted"></span>
-      </div>
-      <ul id="records"></ul>
-      <p id="list-empty" class="muted center" hidden>항목이 없습니다.<br>「＋ 새 항목」으로 추가하세요.</p>
-    </section>
+  <section class="detail" id="detail">
+    <div id="detail-empty" class="empty"><div class="empty-ico">🔐</div><p>왼쪽 목록에서 항목을 선택하세요.</p></div>
+    <div id="detail-view" hidden></div>
+    <form id="detail-form" hidden autocomplete="off"></form>
+  </section>
 
-    <section class="detail" id="detail">
-      <div id="detail-empty" class="muted center">왼쪽 목록에서 항목을 선택하세요.</div>
-      <div id="detail-view" hidden></div>
-      <form id="detail-form" hidden autocomplete="off"></form>
-    </section>
-  </div>
-
-  <footer class="statusbar">
-    <span id="status-msg"></span>
-    <span id="status-lock" class="muted"></span>
-  </footer>
+  <div id="toasts"></div>
 </section>
 
 <!-- 비밀번호 생성기 -->
 <dialog id="dlg-generator">
   <form method="dialog">
     <h2>비밀번호 생성기</h2>
-    <div class="gen-output">
-      <code id="gen-result"></code>
-      <button type="button" id="gen-refresh" class="icon" title="다시 생성">↻</button>
-    </div>
-    <label>길이 <span id="gen-length-val">16</span>
-      <input type="range" id="gen-length" min="6" max="64" value="16">
-    </label>
+    <div class="gen-output"><code id="gen-result"></code><button type="button" id="gen-refresh" class="icon" title="다시 생성">↻</button></div>
+    <div class="strength"><div id="gen-strength"></div></div>
+    <label>길이 <span id="gen-length-val">16</span><input type="range" id="gen-length" min="6" max="64" value="16"></label>
     <div class="checks">
       <label><input type="checkbox" id="gen-upper" checked> 대문자 (A-Z)</label>
       <label><input type="checkbox" id="gen-lower" checked> 소문자 (a-z)</label>
@@ -115,40 +125,68 @@
 </dialog>
 
 <!-- 설정 -->
-<dialog id="dlg-settings">
-  <form method="dialog" id="form-settings">
-    <h2>설정</h2>
-    <label>자동 잠금 (분, 0 = 사용 안 함)
-      <input type="number" id="set-autolock" min="0" max="240">
-    </label>
-    <label>클립보드 자동 지우기 (초, 0 = 사용 안 함)
-      <input type="number" id="set-clipclear" min="0" max="600">
-    </label>
-    <hr>
-    <h3>마스터 비밀번호 변경</h3>
-    <label>현재 비밀번호 <input type="password" id="set-cur-pw" autocomplete="off"></label>
-    <label>새 비밀번호 (8자 이상) <input type="password" id="set-new-pw" autocomplete="off"></label>
-    <label>새 비밀번호 확인 <input type="password" id="set-new-pw2" autocomplete="off"></label>
-    <button type="button" id="btn-change-pw">비밀번호 변경</button>
-    <p id="set-pw-msg" class="tiny"></p>
-    <hr>
-    <h3>백업</h3>
-    <div class="row">
-      <button type="button" id="btn-export">CSV 내보내기</button>
-      <button type="button" id="btn-import">CSV 가져오기</button>
+<dialog id="dlg-settings" class="wide">
+  <div class="settings">
+    <nav class="settings-nav">
+      <button type="button" data-tab="general" class="active">일반</button>
+      <button type="button" data-tab="appearance">화면</button>
+      <button type="button" data-tab="security">보안</button>
+      <button type="button" data-tab="storage">저장 위치</button>
+      <button type="button" data-tab="backup">백업</button>
+    </nav>
+    <div class="settings-body">
+      <section data-tab="general">
+        <h2>일반</h2>
+        <label>자동 잠금 (분, 0 = 사용 안 함)<input type="number" id="set-autolock" min="0" max="240"></label>
+        <label>클립보드 자동 지우기 (초, 0 = 사용 안 함)<input type="number" id="set-clipclear" min="0" max="600"></label>
+        <label>일정 알림 기준 (며칠 전부터 「다가오는 일정」에 표시)<input type="number" id="set-notifydays" min="1" max="365"></label>
+        <label class="check"><input type="checkbox" id="set-notify"> 잠금 해제 시 다가오는 일정을 Windows 알림으로 표시</label>
+      </section>
+      <section data-tab="appearance" hidden>
+        <h2>화면</h2>
+        <label>테마
+          <select id="set-theme"><option value="system">시스템 설정 따름</option><option value="light">밝게</option><option value="dark">어둡게</option></select>
+        </label>
+        <label>글꼴 크기
+          <select id="set-font"><option value="13">작게</option><option value="14">보통</option><option value="16">크게</option><option value="18">아주 크게</option></select>
+        </label>
+        <label>기본 목록 표시
+          <select id="set-viewmode"><option value="compact">간단히 (제목 + 요약)</option><option value="detail">자세히 (카테고리, 수정일, D-day)</option></select>
+        </label>
+      </section>
+      <section data-tab="security" hidden>
+        <h2>마스터 비밀번호 변경</h2>
+        <label>현재 비밀번호 <input type="password" id="set-cur-pw" autocomplete="off"></label>
+        <label>새 비밀번호 (8자 이상) <input type="password" id="set-new-pw" autocomplete="off"></label>
+        <label>새 비밀번호 확인 <input type="password" id="set-new-pw2" autocomplete="off"></label>
+        <button type="button" id="btn-change-pw">비밀번호 변경</button>
+        <p id="set-pw-msg" class="tiny"></p>
+      </section>
+      <section data-tab="storage" hidden>
+        <h2>볼트 파일 위치</h2>
+        <p class="muted tiny">볼트 파일(vault.mv)을 USB 메모리나 클라우드 동기화 폴더(OneDrive, Google Drive 등)에 두면 다른 PC에서도 같은 데이터를 쓸 수 있습니다. 파일은 암호화되어 있어 마스터 비밀번호 없이는 열 수 없습니다.</p>
+        <div class="path-box" id="set-path"></div>
+        <div class="row wrap">
+          <button type="button" id="btn-move-vault">다른 폴더로 이동…</button>
+          <button type="button" id="btn-move-default">기본 위치로 되돌리기</button>
+          <button type="button" id="btn-show-folder">폴더 열기</button>
+        </div>
+      </section>
+      <section data-tab="backup" hidden>
+        <h2>백업</h2>
+        <div class="row"><button type="button" id="btn-export">CSV 내보내기</button><button type="button" id="btn-import">CSV 가져오기</button></div>
+        <p class="warn tiny">내보낸 CSV는 암호화되지 않습니다. 사용 후 안전하게 삭제하세요.</p>
+        <p class="muted tiny">전체 백업은 볼트 파일(vault.mv) 자체를 복사하는 것이 가장 안전합니다. 「저장 위치 → 폴더 열기」에서 복사하세요.</p>
+      </section>
+      <div class="dialog-actions"><button type="button" id="settings-close" class="primary">닫기</button></div>
     </div>
-    <p class="warn tiny">내보낸 CSV는 암호화되지 않습니다. 사용 후 안전하게 삭제하세요.</p>
-    <p class="muted tiny" id="set-path"></p>
-    <div class="dialog-actions">
-      <button type="submit" class="primary">저장</button>
-    </div>
-  </form>
+  </div>
 </dialog>
 
-<!-- 주메뉴 편집 (Edit) -->
+<!-- 주메뉴 편집 -->
 <dialog id="dlg-menus" class="wide">
   <h2>주메뉴 편집</h2>
-  <p class="muted tiny">주메뉴를 추가하고, 각 주메뉴에 들어갈 항목(입력 칸)을 자유롭게 구성할 수 있습니다. 변경 내용은 즉시 저장됩니다.</p>
+  <p class="muted tiny">주메뉴를 추가하고 각 주메뉴에 들어갈 항목(입력 칸)을 자유롭게 구성할 수 있습니다. 변경 내용은 즉시 저장됩니다.</p>
   <div class="menu-editor">
     <div class="me-left">
       <ul id="me-menus" class="nav"></ul>
@@ -158,14 +196,16 @@
       <div class="row">
         <select id="me-icon" title="아이콘"></select>
         <input type="text" id="me-label" placeholder="주메뉴 이름" maxlength="20">
+        <button type="button" id="me-up" class="icon" title="위로">▲</button>
+        <button type="button" id="me-down" class="icon" title="아래로">▼</button>
         <button type="button" id="me-del-menu" class="danger" title="주메뉴 삭제">삭제</button>
       </div>
       <table id="me-fields">
-        <thead><tr><th>항목 이름</th><th>형식</th><th>선택지 (형식이 선택일 때, 쉼표로 구분)</th><th></th></tr></thead>
+        <thead><tr><th>항목 이름</th><th>형식</th><th>선택지 (형식이 「선택」일 때, 쉼표 구분)</th><th></th></tr></thead>
         <tbody></tbody>
       </table>
       <button type="button" id="me-add-field">＋ 항목 추가</button>
-      <p class="muted tiny">Memo(메모)는 모든 주메뉴에 기본으로 포함됩니다.</p>
+      <p class="muted tiny">형식 안내 · <b>비밀</b>: 가려서 표시 · <b>날짜</b>: 만기일처럼 한 번 지나는 날짜(D-day 표시) · <b>기념일</b>: 매년 반복되는 날짜(올해/내년 D-day 표시) · Memo는 모든 주메뉴에 기본 포함</p>
     </div>
   </div>
   <div class="dialog-actions"><button type="button" id="me-close" class="primary">닫기</button></div>
@@ -176,10 +216,7 @@
   <form method="dialog" id="form-category">
     <h2>카테고리 추가</h2>
     <label>이름 <input type="text" id="cat-name" required maxlength="30"></label>
-    <div class="dialog-actions">
-      <button type="button" id="cat-cancel">취소</button>
-      <button type="submit" class="primary">추가</button>
-    </div>
+    <div class="dialog-actions"><button type="button" id="cat-cancel">취소</button><button type="submit" class="primary">추가</button></div>
   </form>
 </dialog>
 
