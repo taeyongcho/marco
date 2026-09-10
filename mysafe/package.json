@@ -1,0 +1,59 @@
+{
+  "name": "mysafe",
+  "productName": "MySafe",
+  "version": "1.0.0",
+  "description": "MySafe - IT Brain Co., Ltd. 로컬 비밀번호 관리자 (Windows)",
+  "main": "src/main.js",
+  "author": "IT Brain Co., Ltd.",
+  "license": "MIT",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.js",
+    "dist:win": "electron-builder --win --x64",
+    "dist:win:portable": "electron-builder --win portable --x64"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "kr.marco.mysafe",
+    "productName": "MySafe",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "renderer/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "MySafe-Setup-${version}.${ext}",
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "MySafe",
+      "language": "1042"
+    },
+    "portable": {
+      "artifactName": "MySafe-Portable-${version}.${ext}"
+    },
+    "publish": null,
+    "copyright": "Copyright © 2026 IT Brain Co., Ltd."
+  }
+}
