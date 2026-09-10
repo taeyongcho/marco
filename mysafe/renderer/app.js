@@ -230,6 +230,9 @@ async function showAuth() {
       ? (license.error ? `라이선스에 문제가 있습니다.<br>${esc(license.error)}<br>라이선스를 다시 입력해 주세요.`
                        : 'MySafe를 사용하려면 라이선스 등록이 필요합니다.<br>체험판 또는 영구 라이선스 키를 입력해 주세요.')
       : `<b>${esc(license.typeLabel)} 라이선스가 만료되었습니다.</b><br>만료일 ${esc(license.expires)}<br>계속 사용하려면 라이선스를 다시 입력해 주세요.`;
+    $('#lic-block-sub').textContent = license.clockIssue
+      ? '저장된 데이터는 그대로 보관됩니다. 날짜를 바로잡으면 바로 다시 사용할 수 있습니다.'
+      : '저장된 데이터는 그대로 보관됩니다. 라이선스를 등록하면 바로 다시 사용할 수 있습니다.';
     $('#auth-subtitle').textContent = license.clockIssue ? '시스템 날짜를 확인해 주세요.' : '라이선스 확인이 필요합니다.';
     return;
   }
