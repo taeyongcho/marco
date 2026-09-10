@@ -12,13 +12,13 @@
 <section id="screen-auth" class="screen auth">
   <div class="auth-bg"></div>
   <div class="auth-card">
-    <div class="logo-wrap"><div class="logo">🔐</div></div>
+    <img class="logo-img" src="icon.svg" alt="MySafe">
     <h1>MySafe</h1>
     <p id="auth-subtitle" class="muted"></p>
 
     <form id="form-setup" hidden autocomplete="off">
       <label>마스터 비밀번호 <span class="muted">(8자 이상)</span>
-        <div class="pw-wrap"><input type="password" id="setup-pw" required minlength="8"><button type="button" class="icon eye" data-eye-for="setup-pw" title="보기">👁</button></div>
+        <div class="pw-wrap"><input type="password" id="setup-pw" required minlength="8"><button type="button" class="icon eye" data-eye-for="setup-pw" title="보기" data-ico="eye"></button></div>
       </label>
       <label>마스터 비밀번호 확인
         <input type="password" id="setup-pw2" required minlength="8">
@@ -31,7 +31,7 @@
 
     <form id="form-unlock" hidden autocomplete="off">
       <label>마스터 비밀번호
-        <div class="pw-wrap"><input type="password" id="unlock-pw" required><button type="button" class="icon eye" data-eye-for="unlock-pw" title="보기">👁</button></div>
+        <div class="pw-wrap"><input type="password" id="unlock-pw" required><button type="button" class="icon eye" data-eye-for="unlock-pw" title="보기" data-ico="eye"></button></div>
       </label>
       <button type="submit" class="primary big">잠금 해제</button>
     </form>
@@ -44,41 +44,43 @@
 
     <p id="auth-error" class="error" hidden></p>
     <p class="muted tiny path" id="auth-path"></p>
+    <p class="brand-line">Made by <b>AXIOHOLDINGS</b></p>
   </div>
 </section>
 
 <!-- 메인 화면 -->
 <section id="screen-main" class="screen main" hidden>
   <aside class="sidebar">
-    <div class="brand"><span class="brand-logo">🔐</span><span>MySafe</span></div>
-    <button id="btn-new" class="primary new-btn" title="새 항목 (Ctrl+N)">＋ 새 항목</button>
+    <div class="brand"><img class="brand-logo" src="icon.svg" alt=""><span>MySafe</span></div>
+    <button id="btn-new" class="primary new-btn" title="새 항목 (Ctrl+N)" data-ico="plus"> 새 항목</button>
 
     <div class="sidebar-scroll">
     <h3>보기</h3>
     <ul id="nav-views" class="nav">
-      <li data-view="all" class="active"><span>🗂 전체 항목</span><span class="count" id="count-all"></span></li>
-      <li data-view="favorites"><span>⭐ 즐겨찾기</span><span class="count" id="count-fav"></span></li>
-      <li data-view="upcoming"><span>🔔 다가오는 일정</span><span class="count badge" id="count-upcoming"></span></li>
-      <li data-view="recent"><span>🕘 최근 수정</span></li>
+      <li data-view="all" class="active"><span data-ico="grid"> 전체 항목</span><span class="count" id="count-all"></span></li>
+      <li data-view="favorites"><span data-ico="star"> 즐겨찾기</span><span class="count" id="count-fav"></span></li>
+      <li data-view="upcoming"><span data-ico="bell"> 다가오는 일정</span><span class="count badge" id="count-upcoming"></span></li>
+      <li data-view="recent"><span data-ico="clock"> 최근 수정</span></li>
     </ul>
 
     <h3>주메뉴 <button id="btn-edit-menus" class="icon" title="주메뉴/항목 편집">Edit</button></h3>
     <ul id="nav-types" class="nav"></ul>
 
-    <h3>카테고리 <button id="btn-add-category" class="icon" title="카테고리 추가">＋</button></h3>
+    <h3>카테고리 <button id="btn-add-category" class="icon" title="카테고리 추가" data-ico="plus"></button></h3>
     <ul id="nav-categories" class="nav"></ul>
     </div>
 
     <div class="sidebar-bottom">
-      <button id="btn-generator" title="비밀번호 생성기">🎲 생성기</button>
-      <button id="btn-settings" title="설정">⚙ 설정</button>
-      <button id="btn-lock" title="잠금 (Ctrl+L)">🔒</button>
+      <button id="btn-generator" title="비밀번호 생성기" data-ico="dice"> 생성기</button>
+      <button id="btn-settings" title="설정" data-ico="gear"> 설정</button>
+      <button id="btn-lock" title="잠금 (Ctrl+L)" data-ico="lock"></button>
     </div>
+    <div class="sidebar-credit">MySafe <span id="app-version">1.0.0</span> · AXIOHOLDINGS</div>
   </aside>
 
   <section class="list">
     <div class="list-toolbar">
-      <div class="search-wrap"><span class="search-ico">🔍</span><input type="search" id="search" placeholder="검색  (Ctrl+F)"></div>
+      <div class="search-wrap"><span class="search-ico" data-ico="search"></span><input type="search" id="search" placeholder="검색  (Ctrl+F)"></div>
       <select id="sort" title="정렬">
         <option value="title">이름순</option>
         <option value="updated">최근 수정순</option>
@@ -86,15 +88,15 @@
         <option value="fav">즐겨찾기 우선</option>
         <option value="dday">D-day 순</option>
       </select>
-      <button id="btn-viewmode" class="icon" title="목록 표시 방식">☰</button>
+      <button id="btn-viewmode" class="icon" title="목록 표시 방식"></button>
     </div>
     <div class="list-header"><span id="list-title">전체 항목</span><span id="list-count" class="muted"></span></div>
     <ul id="records"></ul>
-    <div id="list-empty" class="empty" hidden><div class="empty-ico">🗃</div><p>항목이 없습니다.<br><b>＋ 새 항목</b>으로 추가하세요.</p></div>
+    <div id="list-empty" class="empty" hidden><div class="empty-ico" data-ico="archive"></div><p>항목이 없습니다.<br><b>새 항목</b> 버튼으로 추가하세요.</p></div>
   </section>
 
   <section class="detail" id="detail">
-    <div id="detail-empty" class="empty"><div class="empty-ico">🔐</div><p>왼쪽 목록에서 항목을 선택하세요.</p></div>
+    <div id="detail-empty" class="empty"><div class="empty-ico" data-ico="safe"></div><p>왼쪽 목록에서 항목을 선택하세요.</p></div>
     <div id="detail-view" hidden></div>
     <form id="detail-form" hidden autocomplete="off"></form>
   </section>
@@ -106,7 +108,7 @@
 <dialog id="dlg-generator">
   <form method="dialog">
     <h2>비밀번호 생성기</h2>
-    <div class="gen-output"><code id="gen-result"></code><button type="button" id="gen-refresh" class="icon" title="다시 생성">↻</button></div>
+    <div class="gen-output"><code id="gen-result"></code><button type="button" id="gen-refresh" class="icon" title="다시 생성" data-ico="refresh"></button></div>
     <div class="strength"><div id="gen-strength"></div></div>
     <label>길이 <span id="gen-length-val">16</span><input type="range" id="gen-length" min="6" max="64" value="16"></label>
     <div class="checks">
@@ -133,6 +135,7 @@
       <button type="button" data-tab="security">보안</button>
       <button type="button" data-tab="storage">저장 위치</button>
       <button type="button" data-tab="backup">백업</button>
+      <button type="button" data-tab="about">정보</button>
     </nav>
     <div class="settings-body">
       <section data-tab="general">
@@ -178,6 +181,18 @@
         <p class="warn tiny">내보낸 CSV는 암호화되지 않습니다. 사용 후 안전하게 삭제하세요.</p>
         <p class="muted tiny">전체 백업은 볼트 파일(vault.mv) 자체를 복사하는 것이 가장 안전합니다. 「저장 위치 → 폴더 열기」에서 복사하세요.</p>
       </section>
+      <section data-tab="about" hidden>
+        <div class="about">
+          <img src="icon.svg" alt="MySafe" class="about-logo">
+          <div>
+            <h2>MySafe</h2>
+            <p class="muted">버전 <span id="about-version">1.0.0</span> · Windows용 로컬 비밀번호 관리자</p>
+            <p>Made by <b>AXIOHOLDINGS</b></p>
+            <p class="muted tiny">모든 데이터는 이 PC(또는 지정한 폴더)의 볼트 파일에 AES-256-GCM으로 암호화되어 저장되며, 외부로 전송되지 않습니다.</p>
+            <p class="muted tiny">© 2026 AXIOHOLDINGS. All rights reserved.</p>
+          </div>
+        </div>
+      </section>
       <div class="dialog-actions"><button type="button" id="settings-close" class="primary">닫기</button></div>
     </div>
   </div>
@@ -190,21 +205,22 @@
   <div class="menu-editor">
     <div class="me-left">
       <ul id="me-menus" class="nav"></ul>
-      <button type="button" id="me-add-menu">＋ 주메뉴 추가</button>
+      <button type="button" id="me-add-menu" data-ico="plus"> 주메뉴 추가</button>
     </div>
     <div class="me-right">
       <div class="row">
-        <select id="me-icon" title="아이콘"></select>
+        <button type="button" id="me-icon-btn" class="icon-pick" title="아이콘 선택"></button>
         <input type="text" id="me-label" placeholder="주메뉴 이름" maxlength="20">
-        <button type="button" id="me-up" class="icon" title="위로">▲</button>
-        <button type="button" id="me-down" class="icon" title="아래로">▼</button>
+        <button type="button" id="me-up" class="icon" title="위로" data-ico="chevronUp"></button>
+        <button type="button" id="me-down" class="icon" title="아래로" data-ico="chevronDown"></button>
         <button type="button" id="me-del-menu" class="danger" title="주메뉴 삭제">삭제</button>
       </div>
+      <div id="me-icon-grid" class="icon-grid" hidden></div>
       <table id="me-fields">
         <thead><tr><th>항목 이름</th><th>형식</th><th>선택지 (형식이 「선택」일 때, 쉼표 구분)</th><th></th></tr></thead>
         <tbody></tbody>
       </table>
-      <button type="button" id="me-add-field">＋ 항목 추가</button>
+      <button type="button" id="me-add-field" data-ico="plus"> 항목 추가</button>
       <p class="muted tiny">형식 안내 · <b>비밀</b>: 가려서 표시 · <b>날짜</b>: 만기일처럼 한 번 지나는 날짜(D-day 표시) · <b>기념일</b>: 매년 반복되는 날짜(올해/내년 D-day 표시) · Memo는 모든 주메뉴에 기본 포함</p>
     </div>
   </div>
@@ -220,6 +236,7 @@
   </form>
 </dialog>
 
+<script src="icons.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

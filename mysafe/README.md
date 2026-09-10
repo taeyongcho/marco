@@ -1,5 +1,7 @@
 # MySafe
 
+**Made by AXIOHOLDINGS**
+
 SplashID 스타일의 **로컬 비밀번호 관리자** (Windows용). Electron으로 만들어졌으며 모든 데이터는 내 PC 안에만 암호화되어 저장됩니다.
 
 ## 기능
@@ -67,5 +69,5 @@ mysafe/
 │  └─ csv.js       # CSV 내보내기/가져오기
 ├─ renderer/       # 화면 (index.html, style.css, app.js)
 ├─ test/           # node:test 단위 테스트
-└─ build/          # 앱 아이콘
+└─ build/          # 앱 아이콘 (icon.svg 원본 → icon.ico/icon.png 생성)
 ```

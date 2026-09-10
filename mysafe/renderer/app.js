@@ -2,30 +2,29 @@
 /* MySafe 렌더러 */
 
 const FIELD_KINDS = { text: '일반', secret: '비밀', url: 'URL', date: '날짜', yearly: '기념일', select: '선택' };
-const ICONS = ['🔑', '🏦', '💳', '🛡', '🎂', '🌐', '📶', '🖥', '🎫', '🪪', '📝', '📁', '⭐', '🏠', '🚗', '📱', '💊', '🎓', '✈', '🎮', '💼', '🔧'];
 const DEFAULT_SETTINGS = { autoLockMinutes: 5, clipboardClearSeconds: 30, notifyDays: 30, notify: true };
 
 function defaultMenus() {
   return [
-    { id: 'login', label: '시스템로그인', icon: '🔑', fields: [
+    { id: 'login', label: '시스템로그인', icon: 'key', fields: [
       { key: 'username', label: 'ID', kind: 'text' }, { key: 'password', label: 'Pass', kind: 'secret' },
       { key: 'url', label: 'URL', kind: 'url' }, { key: 'ip', label: 'IP', kind: 'text' },
     ]},
-    { id: 'bank', label: '뱅킹', icon: '🏦', fields: [
+    { id: 'bank', label: '뱅킹', icon: 'bank', fields: [
       { key: 'bank', label: '은행명', kind: 'text' }, { key: 'accountNumber', label: '계좌번호', kind: 'text' },
       { key: 'username', label: 'ID', kind: 'text' }, { key: 'password', label: 'Pass', kind: 'secret' }, { key: 'url', label: 'URL', kind: 'url' },
     ]},
-    { id: 'card', label: '크레디트카드', icon: '💳', fields: [
+    { id: 'card', label: '크레디트카드', icon: 'card', fields: [
       { key: 'cardName', label: '카드명', kind: 'text' }, { key: 'cardNumber', label: '카드번호', kind: 'secret' },
       { key: 'expiry', label: '만료일', kind: 'text' }, { key: 'pin', label: 'PIN', kind: 'secret' }, { key: 'cardPassword', label: 'Pass (카드)', kind: 'secret' },
       { key: 'billingAccount', label: '결제계좌', kind: 'text' }, { key: 'url', label: 'URL', kind: 'url' },
       { key: 'username', label: 'ID', kind: 'text' }, { key: 'password', label: 'Pass (로그인)', kind: 'secret' },
     ]},
-    { id: 'insurance', label: '보험', icon: '🛡', fields: [
+    { id: 'insurance', label: '보험', icon: 'shield', fields: [
       { key: 'company', label: '보험사', kind: 'text' }, { key: 'product', label: '보험상품', kind: 'text' }, { key: 'url', label: 'URL', kind: 'url' },
       { key: 'expiry', label: '만기일', kind: 'date' }, { key: 'premium', label: '보험료', kind: 'text' }, { key: 'insured', label: '피보험자', kind: 'text' },
     ]},
-    { id: 'anniversary', label: '기념일', icon: '🎂', fields: [
+    { id: 'anniversary', label: '기념일', icon: 'cake', fields: [
       { key: 'kind', label: '구분', kind: 'select', options: ['생일', '결혼기념일', '기일', '기타'] },
       { key: 'name', label: '이름', kind: 'text' }, { key: 'relation', label: '관계', kind: 'text' },
       { key: 'date', label: '날짜', kind: 'yearly' }, { key: 'calendar', label: '양/음', kind: 'select', options: ['양력', '음력'] },
@@ -183,8 +182,10 @@ $('#btn-use-default').addEventListener('click', async () => { await window.vault
 function migrate(data) {
   data.records ||= []; data.categories ||= [];
   if (!Array.isArray(data.menus) || !data.menus.length) data.menus = defaultMenus();
-  for (const m of data.menus) for (const f of m.fields) {
-    if (m.id === 'anniversary' && f.key === 'date' && f.kind === 'date') f.kind = 'yearly';
+  for (const m of data.menus) {
+    if (EMOJI_TO_ICON[m.icon]) m.icon = EMOJI_TO_ICON[m.icon];
+    if (!ICON_PATHS[m.icon]) m.icon = 'folder';
+    for (const f of m.fields) if (m.id === 'anniversary' && f.key === 'date' && f.kind === 'date') f.kind = 'yearly';
   }
   data.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings || {});
 }
@@ -224,7 +225,7 @@ function notifyUpcoming() {
   if (!up.length) return;
   const soon = up.filter(x => x.dd.days <= 7);
   const msg = up.slice(0, 3).map(x => `${x.r.title} ${ddayLabel(x.dd)}`).join(', ') + (up.length > 3 ? ` 외 ${up.length - 3}건` : '');
-  toast(`🔔 다가오는 일정 ${up.length}건: ${msg}`, 'info', 6000);
+  toast(`다가오는 일정 ${up.length}건: ${msg}`, 'info', 6000);
   if (state.data.settings.notify && soon.length) {
     const key = today0().toISOString().slice(0, 10);
     if (prefs.get('notifiedOn') !== key) {
@@ -245,10 +246,10 @@ function renderSidebar() {
   $('#count-fav').textContent = recs.filter(r => r.favorite).length || '';
   $('#count-upcoming').textContent = upcomingRecords().length || '';
   $('#nav-types').innerHTML = menus().map(m =>
-    `<li data-type="${m.id}"><span>${m.icon} ${esc(m.label)}</span><span class="count">${typeCounts[m.id] || ''}</span></li>`).join('');
+    `<li data-type="${m.id}"><span>${ico(m.icon)} ${esc(m.label)}</span><span class="count">${typeCounts[m.id] || ''}</span></li>`).join('');
   $('#nav-categories').innerHTML = state.data.categories.map(c =>
-    `<li data-category="${esc(c)}" title="우클릭: 삭제"><span>📁 ${esc(c)}</span><span class="count">${catCounts[c] || ''}</span></li>`).join('')
-    + `<li data-category=""><span>📂 미분류</span><span class="count">${recs.filter(r => !r.category).length || ''}</span></li>`;
+    `<li data-category="${esc(c)}" title="우클릭: 삭제"><span>${ico('folder')} ${esc(c)}</span><span class="count">${catCounts[c] || ''}</span></li>`).join('')
+    + `<li data-category=""><span>${ico('folderOpen')} 미분류</span><span class="count">${recs.filter(r => !r.category).length || ''}</span></li>`;
   $$('.sidebar .nav li').forEach(li => {
     const v = state.view;
     li.classList.toggle('active',
@@ -271,7 +272,7 @@ $('#nav-categories').addEventListener('contextmenu', async e => {
 });
 function setView(kind, value, title) {
   state.view = { kind, value };
-  $('#list-title').textContent = title.replace(/^\S+\s/, '');
+  $('#list-title').textContent = title.trim();
   if (kind === 'view' && value === 'upcoming' && state.sort !== 'dday') { $('#sort').value = 'dday'; state.sort = 'dday'; }
   renderSidebar(); renderList();
 }
@@ -320,14 +321,14 @@ function renderList() {
   $('#list-count').textContent = recs.length ? recs.length + '개' : '';
   $('#list-empty').hidden = recs.length > 0;
   const detail = state.viewMode === 'detail';
-  $('#btn-viewmode').textContent = detail ? '☷' : '☰';
+  $('#btn-viewmode').innerHTML = ico(detail ? 'listDetail' : 'list');
   $('#records').innerHTML = recs.map(r => `
     <li data-id="${r.id}" class="${r.id === state.selectedId ? 'active' : ''}">
-      <span class="ico">${menuOf(r.type)?.icon || '📄'}</span>
+      <span class="ico">${ico(menuOf(r.type)?.icon || 'note')}</span>
       <span class="meta"><div class="t">${esc(r.title)}</div><div class="s">${esc(subtitleOf(r))}</div>
-        ${detail ? `<div class="extra"><span class="chip">${esc(menuOf(r.type)?.label || '')}</span>${r.category ? `<span class="chip">📁 ${esc(r.category)}</span>` : ''}<span class="chip">${esc(fmtDate(r.updatedAt).replace(/ \S+ \S+$/, ''))}</span></div>` : ''}
+        ${detail ? `<div class="extra"><span class="chip">${esc(menuOf(r.type)?.label || '')}</span>${r.category ? `<span class="chip">${ico('folder')} ${esc(r.category)}</span>` : ''}<span class="chip">${esc(fmtDate(r.updatedAt).replace(/ \S+ \S+$/, ''))}</span></div>` : ''}
       </span>
-      <span class="right">${r.favorite ? '<span class="fav">★</span>' : ''}${ddayChip(r)}</span>
+      <span class="right">${r.favorite ? `<span class="fav">${ico('star', 'fill')}</span>` : ''}${ddayChip(r)}</span>
     </li>`).join('');
 }
 $('#records').addEventListener('click', e => {
@@ -348,7 +349,7 @@ function renderDetail() {
   $('#detail-view').hidden = !r || state.editing;
   if (state.editing) return renderForm();
   if (!r) return;
-  const t = menuOf(r.type) || { label: '(삭제된 주메뉴)', icon: '📄', fields: [] };
+  const t = menuOf(r.type) || { label: '(삭제된 주메뉴)', icon: 'note', fields: [] };
   const rows = t.fields.filter(f => r.fields && r.fields[f.key]).map(f => {
     const val = r.fields[f.key];
     let v;
@@ -360,17 +361,17 @@ function renderDetail() {
     }
     else v = `<span class="v ${f.kind === 'text' ? '' : 'plain'}">${esc(val)}</span>`;
     return `<div class="field"><span class="k">${esc(f.label)}</span>${v}
-      <span class="btns">${f.kind === 'secret' ? '<button class="icon" data-toggle title="보기/숨기기">👁</button>' : ''}<button class="icon" data-copy="${esc(val)}" title="복사">📋</button></span></div>`;
+      <span class="btns">${f.kind === 'secret' ? `<button class="icon" data-toggle title="보기/숨기기">${ico('eye')}</button>` : ''}<button class="icon" data-copy="${esc(val)}" title="복사">${ico('copy')}</button></span></div>`;
   }).join('');
   $('#detail-view').innerHTML = `
     <div class="card detail-head">
-      <span class="ico">${t.icon}</span>
+      <span class="ico">${ico(t.icon)}</span>
       <div><h2>${esc(r.title)}</h2>
-        <div class="sub"><span class="chip">${esc(t.label)}</span><span class="chip">📁 ${esc(r.category || '미분류')}</span><span>수정 ${fmtDate(r.updatedAt)}</span></div></div>
+        <div class="sub"><span class="chip">${esc(t.label)}</span><span class="chip">${ico('folder')} ${esc(r.category || '미분류')}</span><span>수정 ${fmtDate(r.updatedAt)}</span></div></div>
       <div class="actions">
-        <button data-act="fav" class="${r.favorite ? 'fav-on' : ''}" title="즐겨찾기">${r.favorite ? '★' : '☆'}</button>
-        <button data-act="edit">✎ 편집</button>
-        <button data-act="delete" class="danger">삭제</button>
+        <button data-act="fav" class="${r.favorite ? 'fav-on' : ''}" title="즐겨찾기">${ico('star', r.favorite ? 'fill' : '')}</button>
+        <button data-act="edit">${ico('edit')} 편집</button>
+        <button data-act="delete" class="danger">${ico('trash')} 삭제</button>
       </div>
     </div>
     ${rows ? `<div class="card">${rows}</div>` : (t.fields.length ? '<div class="card muted">입력된 항목이 없습니다.</div>' : '')}
@@ -406,7 +407,7 @@ function renderForm() {
   const r = current() || { id: null, type: defaultType, title: '', category: '', notes: '', fields: {} };
   if (!menuOf(r.type)) r.type = menus()[0].id;
   const form = $('#detail-form');
-  const typeOpts = menus().map(m => `<option value="${m.id}" ${m.id === r.type ? 'selected' : ''}>${m.icon} ${esc(m.label)}</option>`).join('');
+  const typeOpts = menus().map(m => `<option value="${m.id}" ${m.id === r.type ? 'selected' : ''}>${esc(m.label)}</option>`).join('');
   const catOpts = ['<option value="">미분류</option>', ...state.data.categories.map(c => `<option value="${esc(c)}" ${c === r.category ? 'selected' : ''}>${esc(c)}</option>`)].join('');
   form.innerHTML = `
     <div class="card">
@@ -429,7 +430,7 @@ function renderForm() {
     $('#type-fields').innerHTML = fieldsOf(type).map(f => {
       const raw = values[f.key] || ''; const v = esc(raw); const label = esc(f.label);
       if (f.kind === 'secret') return `<label>${label}<div class="pw-wrap"><input type="password" name="f_${f.key}" value="${v}" autocomplete="new-password">
-        <button type="button" class="icon" data-eye title="보기/숨기기">👁</button><button type="button" class="icon" data-gen title="생성기">🎲</button></div></label>`;
+        <button type="button" class="icon" data-eye title="보기/숨기기">${ico('eye')}</button><button type="button" class="icon" data-gen title="생성기">${ico('dice')}</button></div></label>`;
       if (f.kind === 'select') {
         const opts = (f.options || []).map(o => `<option value="${esc(o)}" ${o === raw ? 'selected' : ''}>${esc(o)}</option>`).join('');
         return `<label>${label}<select name="f_${f.key}"><option value="">선택</option>${opts}</select></label>`;
@@ -585,14 +586,16 @@ $('#btn-import').addEventListener('click', async () => {
 const me = { sel: null };
 function openMenuEditor() {
   me.sel = menus()[0]?.id || null;
-  $('#me-icon').innerHTML = ICONS.map(i => `<option value="${i}">${i}</option>`).join('');
+  $('#me-icon-grid').innerHTML = MENU_ICONS.map(i => `<button type="button" data-icon="${i}" title="${i}">${ico(i)}</button>`).join('');
+  $('#me-icon-grid').hidden = true;
   renderMenuEditor(); $('#dlg-menus').showModal();
 }
 function renderMenuEditor() {
   const m = menuOf(me.sel);
-  $('#me-menus').innerHTML = menus().map(x => `<li data-id="${x.id}" class="${x.id === me.sel ? 'active' : ''}"><span>${x.icon} ${esc(x.label)}</span></li>`).join('');
+  $('#me-menus').innerHTML = menus().map(x => `<li data-id="${x.id}" class="${x.id === me.sel ? 'active' : ''}"><span>${ico(x.icon)} ${esc(x.label)}</span></li>`).join('');
   $('.me-right').hidden = !m; if (!m) return;
-  $('#me-icon').value = m.icon; $('#me-label').value = m.label;
+  $('#me-icon-btn').innerHTML = ico(m.icon); $('#me-label').value = m.label;
+  $$('#me-icon-grid button').forEach(b => b.classList.toggle('active', b.dataset.icon === m.icon));
   const idx = menus().indexOf(m); $('#me-up').disabled = idx === 0; $('#me-down').disabled = idx === menus().length - 1;
   const kindOpts = k => Object.entries(FIELD_KINDS).map(([v, l]) => `<option value="${v}" ${v === k ? 'selected' : ''}>${l}</option>`).join('');
   $('#me-fields tbody').innerHTML = m.fields.map((f, i) => `
@@ -600,7 +603,7 @@ function renderMenuEditor() {
       <td><input type="text" data-f="label" value="${esc(f.label)}" maxlength="20"></td>
       <td><select data-f="kind">${kindOpts(f.kind)}</select></td>
       <td><input type="text" data-f="options" value="${esc((f.options || []).join(', '))}" ${f.kind === 'select' ? '' : 'disabled'} placeholder="예: 양력, 음력"></td>
-      <td><button type="button" class="icon" data-up title="위로">▲</button><button type="button" class="icon" data-down title="아래로">▼</button><button type="button" class="icon danger" data-del title="삭제">✕</button></td>
+      <td><button type="button" class="icon" data-up title="위로">${ico('chevronUp')}</button><button type="button" class="icon" data-down title="아래로">${ico('chevronDown')}</button><button type="button" class="icon danger" data-del title="삭제">${ico('x')}</button></td>
     </tr>`).join('');
 }
 async function menusChanged() { await persist(); renderSidebar(); renderList(); if (state.editing) renderForm(); else renderDetail(); }
@@ -608,7 +611,7 @@ $('#btn-edit-menus').addEventListener('click', openMenuEditor);
 $('#me-close').addEventListener('click', () => $('#dlg-menus').close());
 $('#me-menus').addEventListener('click', e => { const li = e.target.closest('li'); if (li) { me.sel = li.dataset.id; renderMenuEditor(); } });
 $('#me-add-menu').addEventListener('click', async () => {
-  const m = { id: 'm_' + uid(), label: '새 주메뉴', icon: '📁', fields: [{ key: 'f_' + uid(), label: '항목 1', kind: 'text' }] };
+  const m = { id: 'm_' + uid(), label: '새 주메뉴', icon: 'folder', fields: [{ key: 'f_' + uid(), label: '항목 1', kind: 'text' }] };
   menus().push(m); me.sel = m.id; renderMenuEditor(); await menusChanged();
   $('#me-label').focus(); $('#me-label').select();
 });
@@ -630,7 +633,11 @@ async function moveMenu(delta) {
 $('#me-up').addEventListener('click', () => moveMenu(-1));
 $('#me-down').addEventListener('click', () => moveMenu(1));
 $('#me-label').addEventListener('change', async e => { const m = menuOf(me.sel); if (!m) return; m.label = e.target.value.trim() || m.label; renderMenuEditor(); await menusChanged(); });
-$('#me-icon').addEventListener('change', async e => { const m = menuOf(me.sel); if (!m) return; m.icon = e.target.value; renderMenuEditor(); await menusChanged(); });
+$('#me-icon-btn').addEventListener('click', () => { $('#me-icon-grid').hidden = !$('#me-icon-grid').hidden; });
+$('#me-icon-grid').addEventListener('click', async e => {
+  const b = e.target.closest('button[data-icon]'); const m = menuOf(me.sel); if (!b || !m) return;
+  m.icon = b.dataset.icon; $('#me-icon-grid').hidden = true; renderMenuEditor(); await menusChanged();
+});
 $('#me-add-field').addEventListener('click', async () => {
   const m = menuOf(me.sel); if (!m) return;
   m.fields.push({ key: 'f_' + uid(), label: '새 항목', kind: 'text' });
@@ -672,5 +679,6 @@ document.addEventListener('keydown', e => {
 });
 
 /* 시작 */
+hydrateIcons();
 applyAppearance();
 showAuth();

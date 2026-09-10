@@ -2,9 +2,9 @@
   "name": "mysafe",
   "productName": "MySafe",
   "version": "1.0.0",
-  "description": "SplashID 스타일의 로컬 비밀번호 관리자 (Windows)",
+  "description": "MySafe - AXIOHOLDINGS 로컬 비밀번호 관리자 (Windows)",
   "main": "src/main.js",
-  "author": "marco",
+  "author": "AXIOHOLDINGS",
   "license": "MIT",
   "private": true,
   "scripts": {
@@ -53,6 +53,7 @@
     "portable": {
       "artifactName": "MySafe-Portable-${version}.${ext}"
     },
-    "publish": null
+    "publish": null,
+    "copyright": "Copyright © 2026 AXIOHOLDINGS"
   }
 }
