@@ -2,9 +2,9 @@
   "name": "mysafe",
   "productName": "MySafe",
   "version": "1.0.0",
-  "description": "MySafe - AXIOHOLDINGS 로컬 비밀번호 관리자 (Windows)",
+  "description": "MySafe - IT Brain Co., Ltd. 로컬 비밀번호 관리자 (Windows)",
   "main": "src/main.js",
-  "author": "AXIOHOLDINGS",
+  "author": "IT Brain Co., Ltd.",
   "license": "MIT",
   "private": true,
   "scripts": {
@@ -54,6 +54,6 @@
       "artifactName": "MySafe-Portable-${version}.${ext}"
     },
     "publish": null,
-    "copyright": "Copyright © 2026 AXIOHOLDINGS"
+    "copyright": "Copyright © 2026 IT Brain Co., Ltd."
   }
 }

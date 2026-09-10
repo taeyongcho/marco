@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const { Vault } = require('./vault');
 const { toCsv, fromCsv } = require('./csv');
+const { verifyLicense } = require('./license');
 
 const APP_ID = 'kr.marco.mysafe';
 let win = null;
@@ -60,7 +61,24 @@ function createWindow() {
 function ok(data) { return { ok: true, data }; }
 function fail(e) { return { ok: false, error: e && e.message ? e.message : String(e) }; }
 
+function licenseInfo() {
+  const lic = readConfig().license;
+  if (!lic || !lic.user || !lic.key) return { licensed: false };
+  const v = verifyLicense(lic.user, lic.key);
+  if (!v.ok) return { licensed: false, error: v.error };
+  return { licensed: true, user: v.user, type: v.type, typeLabel: v.typeLabel, expires: v.expires, expired: v.expired, daysLeft: v.daysLeft };
+}
+
 function registerIpc() {
+  ipcMain.handle('license:get', () => licenseInfo());
+  ipcMain.handle('license:set', (_e, user, key) => {
+    const v = verifyLicense(user, key);
+    if (!v.ok) return fail(new Error(v.error));
+    if (v.expired) return fail(new Error(`만료된 ${v.typeLabel} 라이선스입니다. (만료일 ${v.expires})`));
+    writeConfig({ ...readConfig(), license: { user: v.user, key: String(key).trim() } });
+    return ok(licenseInfo());
+  });
+  ipcMain.handle('license:clear', () => { const cfg = readConfig(); delete cfg.license; writeConfig(cfg); return ok(licenseInfo()); });
   ipcMain.handle('vault:info', () => vaultInfo());
   ipcMain.handle('vault:exists', () => vault.exists());
   ipcMain.handle('vault:create', (_e, pw) => { try { return ok(vault.create(pw)); } catch (e) { return fail(e); } });
@@ -145,6 +163,7 @@ function registerIpc() {
     } catch (e) { return fail(e); }
   });
 
+  ipcMain.handle('app:setTitle', (_e, t) => { if (win) win.setTitle(String(t || 'MySafe')); return ok(true); });
   ipcMain.handle('app:notify', (_e, title, body) => {
     if (!Notification.isSupported()) return ok(false);
     const n = new Notification({ title: String(title), body: String(body), icon: path.join(__dirname, '..', 'build', 'icon.png') });

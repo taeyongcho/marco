@@ -13,7 +13,7 @@
   <div class="auth-bg"></div>
   <div class="auth-card">
     <img class="logo-img" src="icon.svg" alt="MySafe">
-    <h1>MySafe</h1>
+    <h1>MySafe <span id="auth-user" class="lic-chip" hidden></span></h1>
     <p id="auth-subtitle" class="muted"></p>
 
     <form id="form-setup" hidden autocomplete="off">
@@ -36,6 +36,12 @@
       <button type="submit" class="primary big">잠금 해제</button>
     </form>
 
+    <div id="auth-locked-lic" hidden>
+      <p class="lic-block" id="lic-block-msg"></p>
+      <button type="button" id="btn-license-required" class="primary big">라이선스 등록</button>
+      <p class="muted tiny">저장된 데이터는 그대로 보관됩니다. 라이선스를 등록하면 바로 다시 사용할 수 있습니다.</p>
+    </div>
+
     <div id="auth-missing" hidden>
       <p class="error">볼트 파일을 찾을 수 없습니다. USB나 클라우드 폴더가 연결되어 있는지 확인하세요.</p>
       <button type="button" id="btn-open-existing2" class="ghost big">다른 볼트 파일 열기…</button>
@@ -44,14 +50,15 @@
 
     <p id="auth-error" class="error" hidden></p>
     <p class="muted tiny path" id="auth-path"></p>
-    <p class="brand-line">Made by <b>AXIOHOLDINGS</b></p>
+    <p class="brand-line">Made by <b>IT Brain Co., Ltd.</b></p>
+    <p class="lic-line"><span id="auth-lic-status" class="muted tiny"></span> <button type="button" id="btn-license" class="link">라이선스 등록</button></p>
   </div>
 </section>
 
 <!-- 메인 화면 -->
 <section id="screen-main" class="screen main" hidden>
   <aside class="sidebar">
-    <div class="brand"><img class="brand-logo" src="icon.svg" alt=""><span>MySafe</span></div>
+    <div class="brand"><img class="brand-logo" src="icon.svg" alt=""><span class="brand-text">MySafe<small id="brand-user" hidden></small></span></div>
     <button id="btn-new" class="primary new-btn" title="새 항목 (Ctrl+N)" data-ico="plus"> 새 항목</button>
 
     <div class="sidebar-scroll">
@@ -75,7 +82,7 @@
       <button id="btn-settings" title="설정" data-ico="gear"> 설정</button>
       <button id="btn-lock" title="잠금 (Ctrl+L)" data-ico="lock"></button>
     </div>
-    <div class="sidebar-credit">MySafe <span id="app-version">1.0.0</span> · AXIOHOLDINGS</div>
+    <div class="sidebar-credit">MySafe <span id="app-version">1.0.0</span> · IT Brain Co., Ltd.</div>
   </aside>
 
   <section class="list">
@@ -187,9 +194,13 @@
           <div>
             <h2>MySafe</h2>
             <p class="muted">버전 <span id="about-version">1.0.0</span> · Windows용 로컬 비밀번호 관리자</p>
-            <p>Made by <b>AXIOHOLDINGS</b></p>
+            <p>Made by <b>IT Brain Co., Ltd.</b></p>
             <p class="muted tiny">모든 데이터는 이 PC(또는 지정한 폴더)의 볼트 파일에 AES-256-GCM으로 암호화되어 저장되며, 외부로 전송되지 않습니다.</p>
-            <p class="muted tiny">© 2026 AXIOHOLDINGS. All rights reserved.</p>
+            <p class="muted tiny">© 2026 IT Brain Co., Ltd. All rights reserved.</p>
+            <hr>
+            <h3>라이선스</h3>
+            <p id="about-license" class="tiny"></p>
+            <div class="row"><button type="button" id="btn-license2">라이선스 등록/변경</button><button type="button" id="btn-license-clear" class="danger" hidden>라이선스 해제</button></div>
           </div>
         </div>
       </section>
@@ -225,6 +236,18 @@
     </div>
   </div>
   <div class="dialog-actions"><button type="button" id="me-close" class="primary">닫기</button></div>
+</dialog>
+
+<!-- 라이선스 등록 -->
+<dialog id="dlg-license">
+  <form method="dialog" id="form-license" autocomplete="off">
+    <h2>라이선스 등록</h2>
+    <p class="muted tiny">IT Brain Co., Ltd.에서 발급한 사용자명과 라이선스 키를 입력하세요. 등록하면 앱 이름 옆에 사용자명이 표시됩니다. 체험판(1개월)과 영구 라이선스 모두 같은 방법으로 등록합니다.</p>
+    <label>사용자명 <input type="text" id="lic-user" required maxlength="60" placeholder="발급받은 사용자명 그대로"></label>
+    <label>라이선스 키 <textarea id="lic-key" required rows="4" placeholder="XXXXXX-XXXXXX-…" spellcheck="false"></textarea></label>
+    <p id="lic-msg" class="tiny"></p>
+    <div class="dialog-actions"><button type="button" id="lic-cancel">취소</button><button type="submit" class="primary">등록</button></div>
+  </form>
 </dialog>
 
 <!-- 카테고리 추가 -->

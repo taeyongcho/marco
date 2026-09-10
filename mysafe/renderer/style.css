@@ -242,3 +242,16 @@ html[data-theme="dark"] #records li .ico .ico-svg { color: #93c5fd; }
 .icon-grid button .ico-svg { width: 18px; height: 18px; }
 .icon-grid button.active { background: var(--active); color: var(--active-text); border-color: var(--accent); }
 .me-left .nav .ico-svg { width: 1.1em; height: 1.1em; }
+
+/* ===== 라이선스 표시 ===== */
+.lic-chip { display: inline-block; font-size: .5em; font-weight: 600; vertical-align: middle; padding: .25em .7em; border-radius: 999px; background: var(--accent-soft); color: var(--active-text); margin-left: .4em; letter-spacing: 0; }
+.lic-chip.trial { background: #fef3c7; color: #92400e; }
+html[data-theme="dark"] .lic-chip.trial { background: #78350f; color: #fde68a; }
+.lic-line { margin: 6px 0 0; }
+.lic-block { background: var(--danger-soft); color: var(--danger); border-radius: 10px; padding: 12px 14px; font-size: .93em; line-height: 1.5; margin: 0 0 4px; }
+#auth-locked-lic { text-align: left; }
+button.link { border: none; background: none; color: var(--accent); padding: 0 .3em; font-size: .86em; text-decoration: underline; }
+button.link:hover { background: none; color: var(--accent-2); }
+.brand-text { display: flex; flex-direction: column; line-height: 1.1; }
+.brand-text small { font-size: .68em; font-weight: 500; color: #93c5fd; margin-top: 2px; }
+#lic-key { font-family: Consolas, "Cascadia Mono", monospace; font-size: .9em; }

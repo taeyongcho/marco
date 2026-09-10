@@ -1,0 +1,28 @@
+{
+  "name": "mysafe-license-gen",
+  "productName": "MySafe License Generator",
+  "version": "1.0.0",
+  "description": "MySafe 라이선스 발급기 (IT Brain Co., Ltd. 내부용)",
+  "main": "src/main.js",
+  "author": "IT Brain Co., Ltd.",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/*.test.js",
+    "dist:win": "electron-builder --win portable --x64"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "kr.itbrain.mysafe.licensegen",
+    "productName": "MySafe License Generator",
+    "copyright": "Copyright © 2026 IT Brain Co., Ltd.",
+    "publish": null,
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["src/**/*", "renderer/**/*", "package.json"],
+    "win": { "target": [{ "target": "portable", "arch": ["x64"] }], "icon": "build/icon.ico", "artifactName": "MySafe-LicenseGen-${version}.${ext}" }
+  }
+}

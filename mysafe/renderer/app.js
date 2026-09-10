@@ -132,17 +132,90 @@ async function persist() {
   return true;
 }
 
+/* ---------- 라이선스 ---------- */
+let license = { licensed: false };
+async function refreshLicense() {
+  license = await window.vault.licenseGet();
+  const name = license.licensed ? license.user : '';
+  const trial = license.licensed && license.type === 1;
+  $('#auth-user').textContent = name; $('#auth-user').hidden = !name;
+  $('#auth-user').classList.toggle('trial', trial);
+  $('#brand-user').textContent = name; $('#brand-user').hidden = !name;
+  $('#auth-lic-status').textContent = license.licensed
+    ? `${license.typeLabel} · ${name}` + (license.expires ? ` (${license.daysLeft >= 0 ? license.daysLeft + '일 남음' : '만료됨'})` : '')
+    : (license.error ? '라이선스 오류: ' + license.error : '라이선스 미등록');
+  $('#btn-license').textContent = license.licensed ? '변경' : '라이선스 등록';
+  $('#about-license').innerHTML = license.licensed
+    ? `<b>${esc(license.typeLabel)}</b> · 사용자 ${esc(name)}<br>${license.expires ? `만료일 ${license.expires} (${license.daysLeft >= 0 ? license.daysLeft + '일 남음' : '만료됨'})` : '기간 제한 없음'}`
+    : '등록된 라이선스가 없습니다. 체험판 또는 영구 라이선스를 등록하세요.';
+  $('#btn-license-clear').hidden = !license.licensed;
+  document.title = name ? `MySafe - ${name}` : 'MySafe';
+  window.vault.setTitle(document.title);
+}
+/** 잠금 해제 직후 라이선스 상태 안내 */
+function licenseNotice() {
+  if (!license.licensed) return;
+  if (license.type === 1) {
+    const d = license.daysLeft;
+    if (d === null) return;
+    if (d < 0) toast('체험판 라이선스가 만료되었습니다. 영구 라이선스를 등록해 주세요.', 'err', 8000);
+    else if (d === 0) toast('체험판 라이선스가 오늘 만료됩니다.', 'err', 8000);
+    else if (d <= 7) toast(`체험판 라이선스가 ${d}일 남았습니다. 계속 사용하시려면 영구 라이선스를 등록해 주세요.`, 'err', 8000);
+    else toast(`체험판 라이선스 · ${d}일 남았습니다.`, 'info', 5000);
+  } else if (license.expires) {
+    toast(`라이선스 만료일 ${license.expires} (${license.daysLeft}일 남음)`, 'info', 5000);
+  } else {
+    toast(`영구 라이선스 · ${license.user} 님, 기간 제한 없이 사용하실 수 있습니다.`, 'info', 5000);
+  }
+}
+function openLicenseDialog() {
+  $('#lic-user').value = license.licensed ? license.user : '';
+  $('#lic-key').value = '';
+  $('#lic-msg').textContent = ''; $('#lic-msg').className = 'tiny';
+  $('#dlg-license').showModal(); setTimeout(() => $('#lic-user').focus(), 30);
+}
+$('#btn-license').addEventListener('click', openLicenseDialog);
+$('#btn-license-required').addEventListener('click', openLicenseDialog);
+$('#btn-license2').addEventListener('click', openLicenseDialog);
+$('#lic-cancel').addEventListener('click', () => $('#dlg-license').close());
+$('#form-license').addEventListener('submit', async e => {
+  e.preventDefault();
+  const r = await window.vault.licenseSet($('#lic-user').value, $('#lic-key').value);
+  const msg = $('#lic-msg');
+  if (!r.ok) { msg.textContent = r.error; msg.className = 'tiny error'; return; }
+  await refreshLicense();
+  $('#dlg-license').close();
+  toast(`${license.typeLabel} 라이선스를 등록했습니다: ${license.user}`);
+  if (!state.data) showAuth();   // 잠금 화면이면 다시 그려서 입력창을 연다
+});
+$('#btn-license-clear').addEventListener('click', async () => {
+  if (!confirm('등록된 라이선스를 해제할까요?')) return;
+  await window.vault.licenseClear(); await refreshLicense(); toast('라이선스를 해제했습니다.', 'info');
+});
+
 /* ---------- 인증 화면 ---------- */
 async function showAuth() {
+  await refreshLicense();   // 잠금 화면으로 돌아올 때마다 만료 여부를 다시 확인
   $('#screen-main').hidden = true;
   $('#screen-auth').hidden = false;
   $('#auth-error').hidden = true;
   const info = await window.vault.info(); state.info = info;
   $('#auth-path').textContent = '볼트 파일: ' + info.path;
   const missing = !info.exists && !info.isDefault;   // 지정한 위치(USB 등)에 파일이 없음
-  $('#form-setup').hidden = info.exists || missing;
-  $('#form-unlock').hidden = !info.exists;
-  $('#auth-missing').hidden = !missing;
+  // 라이선스가 없거나 만료되면 잠금 해제를 막고 등록 화면만 보여 준다 (데이터는 그대로 보관)
+  const blocked = !license.licensed || license.expired;
+  $('#auth-locked-lic').hidden = !blocked;
+  $('#form-setup').hidden = blocked || info.exists || missing;
+  $('#form-unlock').hidden = blocked || !info.exists;
+  $('#auth-missing').hidden = blocked || !missing;
+  if (blocked) {
+    $('#lic-block-msg').innerHTML = !license.licensed
+      ? (license.error ? `라이선스에 문제가 있습니다.<br>${esc(license.error)}<br>라이선스를 다시 입력해 주세요.`
+                       : 'MySafe를 사용하려면 라이선스 등록이 필요합니다.<br>체험판 또는 영구 라이선스 키를 입력해 주세요.')
+      : `<b>${esc(license.typeLabel)} 라이선스가 만료되었습니다.</b><br>만료일 ${esc(license.expires)}<br>계속 사용하려면 라이선스를 다시 입력해 주세요.`;
+    $('#auth-subtitle').textContent = '라이선스 확인이 필요합니다.';
+    return;
+  }
   $('#auth-subtitle').textContent = info.exists ? '마스터 비밀번호를 입력해 잠금을 해제하세요.'
     : missing ? '지정된 위치에서 볼트 파일을 찾지 못했습니다.' : '처음 사용합니다. 마스터 비밀번호를 만들어 주세요.';
   const input = info.exists ? $('#unlock-pw') : $('#setup-pw');
@@ -200,11 +273,32 @@ function enterMain(data) {
   $('#form-unlock').reset(); $('#form-setup').reset();
   renderAll();
   resetLockTimer();
+  licenseNotice();
   notifyUpcoming();
+  restoreDraft();
 }
-async function lock() {
+let draft = null; // 자동 잠금 시 편집 중이던 내용 (잠금 해제 후 복원)
+function captureDraft() {
+  const form = $('#detail-form'); if (!state.editing || !form.type) return null;
+  return { id: state.selectedId, type: form.type.value, category: form.category.value, title: form.title.value, notes: form.notes.value, fields: collectFields(form) };
+}
+function restoreDraft() {
+  if (!draft) return;
+  const d = draft; draft = null;
+  if (d.id && !state.data.records.find(r => r.id === d.id)) return;
+  state.selectedId = d.id; state.editing = true; renderList(); renderDetail();
+  const form = $('#detail-form');
+  form.type.value = d.type; form.type.dispatchEvent(new Event('change'));
+  form.category.value = d.category; form.title.value = d.title; form.notes.value = d.notes;
+  for (const [k, v] of Object.entries(d.fields)) { const el = form.querySelector(`[name="f_${k}"]`); if (el) el.value = v; }
+  toast('잠금 전 편집 중이던 내용을 복원했습니다. 저장을 눌러 주세요.', 'info', 5000);
+}
+async function lock(auto = false) {
   if (!state.data) return;
-  if (state.editing && !confirm('편집 중인 내용이 저장되지 않았습니다. 잠글까요?')) return;
+  if (state.editing) {
+    if (auto) draft = captureDraft();
+    else if (!confirm('편집 중인 내용이 저장되지 않았습니다. 잠글까요?')) return;
+  }
   await window.vault.lock();
   state.data = null; state.selectedId = null; state.editing = false;
   clearTimeout(state.lockTimer);
@@ -215,10 +309,12 @@ function resetLockTimer() {
   clearTimeout(state.lockTimer);
   if (!state.data) return;
   const min = Number(state.data.settings.autoLockMinutes) || 0;
-  if (min > 0) state.lockTimer = setTimeout(lock, min * 60 * 1000);
+  if (min > 0) state.lockTimer = setTimeout(() => lock(true), min * 60 * 1000);
 }
-['mousemove', 'keydown', 'mousedown', 'wheel'].forEach(ev => document.addEventListener(ev, () => { if (state.data) resetLockTimer(); }, { passive: true }));
-window.vault.onLockRequest(() => lock());
+// 사용자 활동(마우스 이동·클릭·휠, 키 입력, 입력창 타이핑, 스크롤, 창 포커스)이 있으면 카운트를 처음부터 다시 시작
+['mousemove', 'keydown', 'mousedown', 'wheel', 'input', 'scroll', 'focus'].forEach(ev => document.addEventListener(ev, () => { if (state.data) resetLockTimer(); }, { passive: true, capture: true }));
+window.addEventListener('focus', () => { if (state.data) resetLockTimer(); });
+window.vault.onLockRequest(() => lock(true));
 
 function notifyUpcoming() {
   const up = upcomingRecords();
@@ -472,7 +568,7 @@ function newRecord() {
   state.selectedId = null; state.editing = true; renderList(); renderDetail();
 }
 $('#btn-new').addEventListener('click', newRecord);
-$('#btn-lock').addEventListener('click', lock);
+$('#btn-lock').addEventListener('click', () => lock(false));
 
 /* 카테고리 */
 $('#btn-add-category').addEventListener('click', () => { $('#cat-name').value = ''; $('#dlg-category').showModal(); });
@@ -673,7 +769,7 @@ document.addEventListener('keydown', e => {
   const ctrl = e.ctrlKey || e.metaKey, k = e.key.toLowerCase();
   if (ctrl && k === 'f') { e.preventDefault(); $('#search').focus(); $('#search').select(); }
   else if (ctrl && k === 'n') { e.preventDefault(); newRecord(); }
-  else if (ctrl && k === 'l') { e.preventDefault(); lock(); }
+  else if (ctrl && k === 'l') { e.preventDefault(); lock(false); }
   else if (ctrl && k === 's' && state.editing) { e.preventDefault(); $('#detail-form').requestSubmit(); }
   else if (e.key === 'Escape' && state.editing && !$$('dialog[open]').length) cancelEdit();
 });

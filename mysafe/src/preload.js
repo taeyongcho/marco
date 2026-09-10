@@ -20,5 +20,9 @@ contextBridge.exposeInMainWorld('vault', {
   openExternal: (url) => ipcRenderer.invoke('shell:openExternal', url),
   notify: (title, body) => ipcRenderer.invoke('app:notify', title, body),
   setTheme: (mode) => ipcRenderer.invoke('theme:set', mode),
+  licenseGet: () => ipcRenderer.invoke('license:get'),
+  licenseSet: (user, key) => ipcRenderer.invoke('license:set', user, key),
+  licenseClear: () => ipcRenderer.invoke('license:clear'),
+  setTitle: (t) => ipcRenderer.invoke('app:setTitle', t),
   onLockRequest: (cb) => ipcRenderer.on('vault:lock-request', () => cb()),
 });
