@@ -152,6 +152,13 @@ async function refreshLicense() {
   document.title = name ? `MySafe - ${name}` : 'MySafe';
   window.vault.setTitle(document.title);
 }
+/** 사용 중에도 10분마다 시계를 확인해 되돌리면 잠근다 */
+setInterval(async () => {
+  if (!state.data) return;
+  const info = await window.vault.licenseGet();
+  if (info.clockIssue || info.expired || !info.licensed) { await lock(true); }
+}, 10 * 60 * 1000);
+
 /** 잠금 해제 직후 라이선스 상태 안내 */
 function licenseNotice() {
   if (!license.licensed) return;
@@ -176,6 +183,10 @@ function openLicenseDialog() {
 }
 $('#btn-license').addEventListener('click', openLicenseDialog);
 $('#btn-license-required').addEventListener('click', openLicenseDialog);
+$('#btn-clock-recheck').addEventListener('click', async () => {
+  await showAuth();
+  if (!license.clockIssue) toast('날짜가 정상으로 확인되었습니다.');
+});
 $('#btn-license2').addEventListener('click', openLicenseDialog);
 $('#lic-cancel').addEventListener('click', () => $('#dlg-license').close());
 $('#form-license').addEventListener('submit', async e => {
@@ -202,18 +213,24 @@ async function showAuth() {
   const info = await window.vault.info(); state.info = info;
   $('#auth-path').textContent = '볼트 파일: ' + info.path;
   const missing = !info.exists && !info.isDefault;   // 지정한 위치(USB 등)에 파일이 없음
-  // 라이선스가 없거나 만료되면 잠금 해제를 막고 등록 화면만 보여 준다 (데이터는 그대로 보관)
-  const blocked = !license.licensed || license.expired;
+  // 라이선스가 없거나 만료됐거나 시계를 되돌린 경우 잠금 해제를 막는다 (데이터는 그대로 보관)
+  const blocked = !!license.clockIssue || !license.licensed || license.expired;
   $('#auth-locked-lic').hidden = !blocked;
   $('#form-setup').hidden = blocked || info.exists || missing;
   $('#form-unlock').hidden = blocked || !info.exists;
   $('#auth-missing').hidden = blocked || !missing;
   if (blocked) {
-    $('#lic-block-msg').innerHTML = !license.licensed
+    $('#btn-license-required').hidden = !!license.clockIssue;
+    $('#btn-clock-recheck').hidden = !license.clockIssue;
+    $('#lic-block-msg').innerHTML = license.clockIssue === 'rollback'
+      ? `<b>시스템 날짜가 되돌려진 것으로 보입니다.</b><br>이 PC에서 마지막으로 확인된 날짜는 ${esc(license.clockSeen)} 입니다.<br>Windows 날짜/시간을 현재 날짜로 맞춘 뒤 「다시 확인」을 눌러 주세요.`
+      : license.clockIssue === 'tampered'
+      ? `<b>라이선스 사용 기록이 손상되었거나 변경되었습니다.</b><br>Windows 날짜/시간을 확인한 뒤 「다시 확인」을 누르거나, 라이선스를 다시 등록해 주세요.`
+      : !license.licensed
       ? (license.error ? `라이선스에 문제가 있습니다.<br>${esc(license.error)}<br>라이선스를 다시 입력해 주세요.`
                        : 'MySafe를 사용하려면 라이선스 등록이 필요합니다.<br>체험판 또는 영구 라이선스 키를 입력해 주세요.')
       : `<b>${esc(license.typeLabel)} 라이선스가 만료되었습니다.</b><br>만료일 ${esc(license.expires)}<br>계속 사용하려면 라이선스를 다시 입력해 주세요.`;
-    $('#auth-subtitle').textContent = '라이선스 확인이 필요합니다.';
+    $('#auth-subtitle').textContent = license.clockIssue ? '시스템 날짜를 확인해 주세요.' : '라이선스 확인이 필요합니다.';
     return;
   }
   $('#auth-subtitle').textContent = info.exists ? '마스터 비밀번호를 입력해 잠금을 해제하세요.'

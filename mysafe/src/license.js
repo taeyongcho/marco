@@ -31,15 +31,20 @@ function expiryFromDays(days) {
   return new Date(EPOCH + days * 86400000).toISOString().slice(0, 10);
 }
 
-function daysLeft(expires) {
+function daysLeft(expires, todayYmd) {
   if (!expires) return null;
-  const t = new Date(); t.setHours(0, 0, 0, 0);
+  const [ty, tm, td] = todayYmd.split('-').map(Number);
   const [y, m, d] = expires.split('-').map(Number);
-  return Math.round((new Date(y, m - 1, d) - t) / 86400000);
+  return Math.round((Date.UTC(y, m - 1, d) - Date.UTC(ty, tm - 1, td)) / 86400000);
+}
+function todayLocal() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 /** @returns {{ok:boolean, user?:string, type?:number, typeLabel?:string, expires?:string|null, expired?:boolean, daysLeft?:number|null, error?:string}} */
-function verifyLicense(user, key) {
+function verifyLicense(user, key, today) {
+  const todayYmd = today || todayLocal();
   const norm = normalizeUser(user);
   if (!norm) return { ok: false, error: '사용자명을 입력하세요.' };
   const bytes = base32Decode(key);
@@ -52,11 +57,11 @@ function verifyLicense(user, key) {
   try { valid = crypto.verify(null, msg, publicKey(), sig); } catch (_) { valid = false; }
   if (!valid) return { ok: false, error: '라이선스 키가 사용자명과 일치하지 않습니다.' };
   const expires = expiryFromDays(expDays);
-  const expired = !!expires && expires < new Date().toISOString().slice(0, 10);
+  const expired = !!expires && expires < todayYmd;
   return {
     ok: true, user: String(user).trim().replace(/\s+/g, ' '),
-    type, typeLabel: TYPES[type] || '기타', expires, expired, daysLeft: daysLeft(expires),
+    type, typeLabel: TYPES[type] || '기타', expires, expired, daysLeft: daysLeft(expires, todayYmd),
   };
 }
 
-module.exports = { verifyLicense, normalizeUser, base32Decode, TYPES, PUBLIC_KEY_HEX };
+module.exports = { verifyLicense, normalizeUser, base32Decode, todayLocal, TYPES, PUBLIC_KEY_HEX };
