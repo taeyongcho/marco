@@ -1,4 +1,4 @@
-# Marco Vault
+# MySafe
 
 SplashID 스타일의 **로컬 비밀번호 관리자** (Windows용). Electron으로 만들어졌으며 모든 데이터는 내 PC 안에만 암호화되어 저장됩니다.
 
@@ -30,7 +30,7 @@ SplashID 스타일의 **로컬 비밀번호 관리자** (Windows용). Electron�
 |---|---|
 | 키 유도 | scrypt (N=2^15, r=8, p=1), 16바이트 랜덤 salt |
 | 암호화 | AES‑256‑GCM (무결성 검증 포함) |
-| 저장 위치 | 기본 `%APPDATA%\marco-vault\vault.mv` (설정에서 변경 가능, 위치는 `config.json`에 기록) |
+| 저장 위치 | 기본 `%APPDATA%\MySafe\vault.mv` (설정에서 변경 가능, 위치는 `config.json`에 기록) |
 | 메모리 | 잠금 시 키를 0으로 덮어쓰고 폐기 |
 | 렌더러 격리 | contextIsolation + sandbox, Node 접근 불가, IPC로만 통신 |
 
@@ -38,7 +38,7 @@ SplashID 스타일의 **로컬 비밀번호 관리자** (Windows용). Electron�
 
 ## 설치 (Windows)
 
-1. `MarcoVault-Setup-1.0.0.exe` 를 실행합니다.
+1. `MySafe-Setup-1.0.0.exe` 를 실행합니다.
 2. 설치 폴더를 고른 뒤 설치하면 바탕화면과 시작 메뉴에 바로가기가 생깁니다.
 3. 첫 실행에서 마스터 비밀번호(8자 이상)를 만들면 바로 사용할 수 있습니다.
 
@@ -47,11 +47,11 @@ SplashID 스타일의 **로컬 비밀번호 관리자** (Windows용). Electron�
 ## 개발 / 빌드
 
 ```bash
-cd marco-vault
+cd mysafe
 npm install          # Electron + electron-builder 설치
 npm start            # 개발 모드 실행
 npm test             # 암호화·CSV 단위 테스트
-npm run dist:win     # Windows 설치 파일 생성 → dist/MarcoVault-Setup-<버전>.exe
+npm run dist:win     # Windows 설치 파일 생성 → dist/MySafe-Setup-<버전>.exe
 ```
 
 Windows PC에서 그대로 빌드됩니다. Linux/macOS에서 Windows 설치 파일을 만들려면 `wine`(32비트 포함)이 필요합니다.
@@ -59,7 +59,7 @@ Windows PC에서 그대로 빌드됩니다. Linux/macOS에서 Windows 설치 파
 ## 폴더 구조
 
 ```
-marco-vault/
+mysafe/
 ├─ src/
 │  ├─ main.js      # Electron 메인 프로세스, IPC, 클립보드, 파일 대화상자
 │  ├─ preload.js   # 렌더러에 노출하는 안전한 API

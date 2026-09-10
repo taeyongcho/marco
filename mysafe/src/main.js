@@ -5,7 +5,7 @@ const fs = require('fs');
 const { Vault } = require('./vault');
 const { toCsv, fromCsv } = require('./csv');
 
-const APP_ID = 'kr.marco.vault';
+const APP_ID = 'kr.marco.mysafe';
 let win = null;
 let vault = null;
 let clipboardTimer = null;
@@ -39,7 +39,7 @@ function createWindow() {
     height: 760,
     minWidth: 900,
     minHeight: 560,
-    title: 'Marco Vault',
+    title: 'MySafe',
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#0f172a' : '#f1f5f9',
     autoHideMenuBar: true,
     icon: path.join(__dirname, '..', 'build', 'icon.png'),
@@ -107,7 +107,7 @@ function registerIpc() {
   ipcMain.handle('vault:openExisting', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog(win, {
       title: '기존 볼트 파일 열기', properties: ['openFile'],
-      filters: [{ name: 'Marco Vault', extensions: ['mv'] }, { name: '모든 파일', extensions: ['*'] }],
+      filters: [{ name: 'MySafe', extensions: ['mv'] }, { name: '모든 파일', extensions: ['*'] }],
     });
     if (canceled || !filePaths.length) return ok(null);
     vault.lock();
@@ -157,7 +157,7 @@ function registerIpc() {
 
   ipcMain.handle('vault:exportCsv', async (_e, records) => {
     const { canceled, filePath } = await dialog.showSaveDialog(win, {
-      title: 'CSV로 내보내기', defaultPath: 'marco-vault-export.csv', filters: [{ name: 'CSV', extensions: ['csv'] }],
+      title: 'CSV로 내보내기', defaultPath: 'mysafe-export.csv', filters: [{ name: 'CSV', extensions: ['csv'] }],
     });
     if (canceled || !filePath) return ok(false);
     try { fs.writeFileSync(filePath, toCsv(records), 'utf8'); return ok(true); } catch (e) { return fail(e); }
@@ -175,8 +175,22 @@ function clearClipboardNow() {
   if (clipboardTimer) { clearTimeout(clipboardTimer); clipboardTimer = null; }
 }
 
+/* 이전 이름(Marco Vault)으로 저장된 데이터 폴더가 있으면 새 폴더로 1회 이전 */
+function migrateOldDataDir() {
+  const newDir = app.getPath('userData');
+  const oldDir = path.join(app.getPath('appData'), 'Marco Vault');
+  if (oldDir === newDir || !fs.existsSync(oldDir)) return;
+  for (const name of ['vault.mv', 'config.json']) {
+    const src = path.join(oldDir, name), dst = path.join(newDir, name);
+    if (fs.existsSync(src) && !fs.existsSync(dst)) {
+      try { fs.mkdirSync(newDir, { recursive: true }); fs.copyFileSync(src, dst); } catch (_) { /* 무시 */ }
+    }
+  }
+}
+
 app.setAppUserModelId(APP_ID);
 app.whenReady().then(() => {
+  migrateOldDataDir();
   configPath = path.join(app.getPath('userData'), 'config.json');
   vault = new Vault(currentVaultPath());
   registerIpc();

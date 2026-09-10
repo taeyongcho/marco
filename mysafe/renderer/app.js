@@ -1,5 +1,5 @@
 'use strict';
-/* Marco Vault 렌더러 */
+/* MySafe 렌더러 */
 
 const FIELD_KINDS = { text: '일반', secret: '비밀', url: 'URL', date: '날짜', yearly: '기념일', select: '선택' };
 const ICONS = ['🔑', '🏦', '💳', '🛡', '🎂', '🌐', '📶', '🖥', '🎫', '🪪', '📝', '📁', '⭐', '🏠', '🚗', '📱', '💊', '🎓', '✈', '🎮', '💼', '🔧'];
@@ -229,7 +229,7 @@ function notifyUpcoming() {
     const key = today0().toISOString().slice(0, 10);
     if (prefs.get('notifiedOn') !== key) {
       prefs.set('notifiedOn', key);
-      window.vault.notify('Marco Vault · 다가오는 일정', soon.slice(0, 4).map(x => `${x.r.title} ${ddayLabel(x.dd)} (${fmtDay(x.dd.next.toISOString().slice(0, 10))})`).join('\n'));
+      window.vault.notify('MySafe · 다가오는 일정', soon.slice(0, 4).map(x => `${x.r.title} ${ddayLabel(x.dd)} (${fmtDay(x.dd.next.toISOString().slice(0, 10))})`).join('\n'));
     }
   }
 }
