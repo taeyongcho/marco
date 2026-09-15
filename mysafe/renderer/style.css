@@ -255,3 +255,17 @@ button.link:hover { background: none; color: var(--accent-2); }
 .brand-text { display: flex; flex-direction: column; line-height: 1.1; }
 .brand-text small { font-size: .68em; font-weight: 500; color: #93c5fd; margin-top: 2px; }
 #lic-key { font-family: Consolas, "Cascadia Mono", monospace; font-size: .9em; }
+
+/* ===== 1.1.0 추가 ===== */
+.list-new { padding: 0 10px 8px; }
+.list-new .new-btn { width: 100%; margin: 0; padding: .6em; }
+.sidebar h3 .scope { font-size: .95em; text-transform: none; letter-spacing: 0; color: #93c5fd; font-weight: 600; margin-left: .3em; }
+.date-wrap { display: flex; align-items: center; gap: 10px; }
+.date-wrap input[type=date] { flex: 0 0 auto; width: auto; min-width: 170px; }
+.date-hint { color: var(--muted); font-size: .88em; white-space: nowrap; }
+.memo-v { white-space: pre-wrap; line-height: 1.55; font-family: inherit; }
+.field .v.memo-v { word-break: break-word; }
+.me-cat { margin-top: 0; }
+.me-cat input { margin-top: .3em; }
+.changelog p { margin: 6px 0; color: var(--muted); line-height: 1.5; }
+.changelog b { color: var(--text); }

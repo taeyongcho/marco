@@ -1,37 +1,6 @@
 'use strict';
 /* MySafe 렌더러 */
 
-const FIELD_KINDS = { text: '일반', secret: '비밀', url: 'URL', date: '날짜', yearly: '기념일', select: '선택' };
-const DEFAULT_SETTINGS = { autoLockMinutes: 5, clipboardClearSeconds: 30, notifyDays: 30, notify: true };
-
-function defaultMenus() {
-  return [
-    { id: 'login', label: '시스템로그인', icon: 'key', fields: [
-      { key: 'username', label: 'ID', kind: 'text' }, { key: 'password', label: 'Pass', kind: 'secret' },
-      { key: 'url', label: 'URL', kind: 'url' }, { key: 'ip', label: 'IP', kind: 'text' },
-    ]},
-    { id: 'bank', label: '뱅킹', icon: 'bank', fields: [
-      { key: 'bank', label: '은행명', kind: 'text' }, { key: 'accountNumber', label: '계좌번호', kind: 'text' },
-      { key: 'username', label: 'ID', kind: 'text' }, { key: 'password', label: 'Pass', kind: 'secret' }, { key: 'url', label: 'URL', kind: 'url' },
-    ]},
-    { id: 'card', label: '크레디트카드', icon: 'card', fields: [
-      { key: 'cardName', label: '카드명', kind: 'text' }, { key: 'cardNumber', label: '카드번호', kind: 'secret' },
-      { key: 'expiry', label: '만료일', kind: 'text' }, { key: 'pin', label: 'PIN', kind: 'secret' }, { key: 'cardPassword', label: 'Pass (카드)', kind: 'secret' },
-      { key: 'billingAccount', label: '결제계좌', kind: 'text' }, { key: 'url', label: 'URL', kind: 'url' },
-      { key: 'username', label: 'ID', kind: 'text' }, { key: 'password', label: 'Pass (로그인)', kind: 'secret' },
-    ]},
-    { id: 'insurance', label: '보험', icon: 'shield', fields: [
-      { key: 'company', label: '보험사', kind: 'text' }, { key: 'product', label: '보험상품', kind: 'text' }, { key: 'url', label: 'URL', kind: 'url' },
-      { key: 'expiry', label: '만기일', kind: 'date' }, { key: 'premium', label: '보험료', kind: 'text' }, { key: 'insured', label: '피보험자', kind: 'text' },
-    ]},
-    { id: 'anniversary', label: '기념일', icon: 'cake', fields: [
-      { key: 'kind', label: '구분', kind: 'select', options: ['생일', '결혼기념일', '기일', '기타'] },
-      { key: 'name', label: '이름', kind: 'text' }, { key: 'relation', label: '관계', kind: 'text' },
-      { key: 'date', label: '날짜', kind: 'yearly' }, { key: 'calendar', label: '양/음', kind: 'select', options: ['양력', '음력'] },
-    ]},
-  ];
-}
-
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => Array.from(document.querySelectorAll(s));
 
@@ -59,12 +28,8 @@ function uid() { return Date.now().toString(36) + Math.random().toString(36).sli
 function esc(s) { return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 function fmtDate(iso) { if (!iso) return ''; return new Date(iso).toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' }); }
 function fmtDay(ymd) { const d = parseYmd(ymd); return d ? `${d.getMonth() + 1}월 ${d.getDate()}일` : ''; }
-function parseYmd(s) {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s || '').trim());
-  if (!m) return null;
-  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-  return isNaN(d) ? null : d;
-}
+/** 날짜 입력칸의 연도를 4자리로 교정 */
+function clampDateInput(el) { const fixed = clampYmd(el.value); if (fixed !== null) el.value = fixed; }
 function today0() { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }
 /** D-day 계산. yearly면 올해/내년 중 다음 도래일 기준. 반환: { days, next, years } 또는 null */
 function ddayOf(value, kind) {
@@ -121,11 +86,29 @@ function paintStrength(el, pw) {
   el.style.background = s <= 2 ? 'var(--danger)' : s <= 4 ? '#f59e0b' : '#16a34a';
 }
 function menus() { return state.data.menus; }
-function menuOf(id) { return menus().find(m => m.id === id) || null; }
-function fieldsOf(id) { const m = menuOf(id); return m ? m.fields : []; }
-function isSecret(type, key) { const f = fieldsOf(type).find(x => x.key === key); return !!(f && f.kind === 'secret'); }
+/** 주메뉴별 카테고리 (없으면 공용 카테고리) */
+function categoriesOf(menuId) {
+  const m = menuOf(menuId);
+  return (m && Array.isArray(m.categories) && m.categories.length) ? m.categories : state.data.categories;
+}
+function allCategories() {
+  const set = new Set(state.data.categories);
+  for (const m of menus()) for (const c of (m.categories || [])) set.add(c);
+  return [...set];
+}
 
 /* ---------- 저장 ---------- */
+let saveTimer = null;
+/** 연속된 편집을 모아 한 번만 저장한다 (입력 중 멈춤 현상 방지) */
+function schedulePersist(delay = 400) {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => { saveTimer = null; persist(); }, delay);
+}
+async function flushPersist() {
+  if (!saveTimer) return true;
+  clearTimeout(saveTimer); saveTimer = null;
+  return persist();
+}
 async function persist() {
   const r = await window.vault.save(state.data);
   if (!r.ok) { toast('저장 실패: ' + r.error, 'err', 6000); return false; }
@@ -272,14 +255,21 @@ $('#btn-open-existing2').addEventListener('click', openExisting);
 $('#btn-use-default').addEventListener('click', async () => { await window.vault.useDefaultLocation(); showAuth(); });
 
 /* ---------- 메인 ---------- */
+let migratedOnOpen = false;   // 이번 실행에서 주메뉴 구성이 갱신되었는지
 function migrate(data) {
   data.records ||= []; data.categories ||= [];
-  if (!Array.isArray(data.menus) || !data.menus.length) data.menus = defaultMenus();
+  const fresh = !Array.isArray(data.menus) || !data.menus.length;
+  if (fresh) data.menus = defaultMenus();
   for (const m of data.menus) {
     if (EMOJI_TO_ICON[m.icon]) m.icon = EMOJI_TO_ICON[m.icon];
     if (!ICON_PATHS[m.icon]) m.icon = 'folder';
     for (const f of m.fields) if (m.id === 'anniversary' && f.key === 'date' && f.kind === 'date') f.kind = 'yearly';
   }
+  if (!fresh && (data.menuVersion || 1) < MENU_VERSION) {
+    migrateMenus(data);
+    migratedOnOpen = true;
+  }
+  data.menuVersion = MENU_VERSION;
   data.settings = Object.assign({}, DEFAULT_SETTINGS, data.settings || {});
 }
 function enterMain(data) {
@@ -293,6 +283,13 @@ function enterMain(data) {
   $('#form-unlock').reset(); $('#form-setup').reset();
   renderAll();
   resetLockTimer();
+  if (migratedOnOpen) {
+    migratedOnOpen = false;
+    window.vault.backup().then(async r => {
+      await persist();
+      toast('주메뉴 구성을 최신 버전으로 업데이트했습니다. 입력하신 내용은 그대로 보존됩니다.' + (r.ok && r.data ? ' (기존 볼트 파일 백업 완료)' : ''), 'info', 7000);
+    });
+  }
   licenseNotice();
   notifyUpcoming();
   restoreDraft();
@@ -315,6 +312,7 @@ function restoreDraft() {
 }
 async function lock(auto = false) {
   if (!state.data) return;
+  await flushPersist();
   if (state.editing) {
     if (auto) draft = captureDraft();
     else if (!confirm('편집 중인 내용이 저장되지 않았습니다. 잠글까요?')) return;
@@ -363,9 +361,14 @@ function renderSidebar() {
   $('#count-upcoming').textContent = upcomingRecords().length || '';
   $('#nav-types').innerHTML = menus().map(m =>
     `<li data-type="${m.id}"><span>${ico(m.icon)} ${esc(m.label)}</span><span class="count">${typeCounts[m.id] || ''}</span></li>`).join('');
-  $('#nav-categories').innerHTML = state.data.categories.map(c =>
-    `<li data-category="${esc(c)}" title="우클릭: 삭제"><span>${ico('folder')} ${esc(c)}</span><span class="count">${catCounts[c] || ''}</span></li>`).join('')
-    + `<li data-category=""><span>${ico('folderOpen')} 미분류</span><span class="count">${recs.filter(r => !r.category).length || ''}</span></li>`;
+  const inMenu = state.view.kind === 'type' ? state.view.value : null;
+  const cats = inMenu ? categoriesOf(inMenu) : allCategories();
+  const scope = inMenu ? recs.filter(r => r.type === inMenu) : recs;
+  const scopedCount = c => scope.filter(r => (r.category || '') === c).length;
+  $('#cat-scope').textContent = inMenu ? menuOf(inMenu)?.label || '' : '전체';
+  $('#nav-categories').innerHTML = cats.map(c =>
+    `<li data-category="${esc(c)}" title="우클릭: 삭제"><span>${ico('folder')} ${esc(c)}</span><span class="count">${scopedCount(c) || ''}</span></li>`).join('')
+    + `<li data-category=""><span>${ico('folderOpen')} 미분류</span><span class="count">${scopedCount('') || ''}</span></li>`;
   $$('.sidebar .nav li').forEach(li => {
     const v = state.view;
     li.classList.toggle('active',
@@ -376,21 +379,36 @@ function renderSidebar() {
 }
 $('#nav-views').addEventListener('click', e => { const li = e.target.closest('li'); if (li) setView('view', li.dataset.view, li.querySelector('span').textContent); });
 $('#nav-types').addEventListener('click', e => { const li = e.target.closest('li'); if (li) setView('type', li.dataset.type, menuOf(li.dataset.type)?.label || ''); });
-$('#nav-categories').addEventListener('click', e => { const li = e.target.closest('li'); if (li) setView('category', li.dataset.category, li.dataset.category || '미분류'); });
+$('#nav-categories').addEventListener('click', e => {
+  const li = e.target.closest('li'); if (!li) return;
+  const inMenu = state.view.kind === 'type' ? state.view.value : (state.view.kind === 'category' ? state.view.menu : null);
+  const label = li.dataset.category || '미분류';
+  setView('category', li.dataset.category, inMenu ? `${menuOf(inMenu).label} · ${label}` : label, inMenu);
+});
 $('#nav-categories').addEventListener('contextmenu', async e => {
   const li = e.target.closest('li'); if (!li || !li.dataset.category) return;
   const c = li.dataset.category;
   if (!confirm(`카테고리 "${c}"를 삭제할까요? 해당 항목은 미분류가 됩니다.`)) return;
-  state.data.categories = state.data.categories.filter(x => x !== c);
-  state.data.records.forEach(r => { if (r.category === c) r.category = ''; });
+  const inMenu = state.view.kind === 'type' ? state.view.value : null;
+  if (inMenu && menuOf(inMenu)?.categories) {
+    menuOf(inMenu).categories = menuOf(inMenu).categories.filter(x => x !== c);
+    state.data.records.forEach(r => { if (r.type === inMenu && r.category === c) r.category = ''; });
+  } else {
+    state.data.categories = state.data.categories.filter(x => x !== c);
+    for (const m of menus()) if (m.categories) m.categories = m.categories.filter(x => x !== c);
+    state.data.records.forEach(r => { if (r.category === c) r.category = ''; });
+  }
   if (state.view.kind === 'category' && state.view.value === c) state.view = { kind: 'view', value: 'all' };
   if (await persist()) renderAll();
 });
-function setView(kind, value, title) {
-  state.view = { kind, value };
+function setView(kind, value, title, menu) {
+  if (state.editing && !confirm('편집 중인 내용을 버릴까요?')) return;
+  state.view = { kind, value, menu: menu || null };
   $('#list-title').textContent = title.trim();
   if (kind === 'view' && value === 'upcoming' && state.sort !== 'dday') { $('#sort').value = 'dday'; state.sort = 'dday'; }
-  renderSidebar(); renderList();
+  // 화면을 바꾸면 오른쪽 블럭(상세 보기·편집 폼)도 함께 비운다
+  state.editing = false; state.selectedId = null;
+  renderSidebar(); renderList(); renderDetail();
 }
 
 /* 목록 */
@@ -401,7 +419,7 @@ function filteredRecords() {
   if (v.kind === 'view' && v.value === 'upcoming') recs = upcomingRecords().map(x => x.r);
   else recs = state.data.records.filter(r => {
     if (v.kind === 'type') return r.type === v.value;
-    if (v.kind === 'category') return (r.category || '') === v.value;
+    if (v.kind === 'category') return (r.category || '') === v.value && (!v.menu || r.type === v.menu);
     if (v.value === 'favorites') return !!r.favorite;
     return true;
   });
@@ -423,7 +441,7 @@ function filteredRecords() {
 }
 function subtitleOf(r) {
   const f = r.fields || {};
-  const first = fieldsOf(r.type).find(x => x.kind !== 'secret' && x.kind !== 'date' && x.kind !== 'yearly' && f[x.key]);
+  const first = fieldsOf(r.type).find(x => !['secret', 'date', 'yearly', 'memo'].includes(x.kind) && f[x.key]);
   return (first ? f[first.key] : '') || menuOf(r.type)?.label || '';
 }
 function ddayChip(r) {
@@ -473,8 +491,10 @@ function renderDetail() {
     else if (f.kind === 'url') v = `<span class="v"><a href="#" data-open="${esc(val)}">${esc(val)}</a></span>`;
     else if (f.kind === 'date' || f.kind === 'yearly') {
       const dd = ddayOf(val, f.kind);
-      v = `<span class="v plain">${esc(val)} ${dd ? `<span class="chip dday ${ddayClass(dd)}">${ddayLabel(dd)}${f.kind === 'yearly' && dd.years > 0 ? ` · ${dd.years}회째` : ''}</span>` : ''}</span>`;
+      const hint = f.kind === 'yearly' ? dateHint(val, r.fields.calendar) : '';
+      v = `<span class="v plain">${esc(val)}${hint ? ` <span class="muted tiny">${esc(hint)}</span>` : ''} ${dd ? `<span class="chip dday ${ddayClass(dd)}">${ddayLabel(dd)}${f.kind === 'yearly' && dd.years > 0 ? ` · ${dd.years}회째` : ''}</span>` : ''}</span>`;
     }
+    else if (f.kind === 'memo') v = `<span class="v plain memo-v">${esc(val)}</span>`;
     else v = `<span class="v ${f.kind === 'text' ? '' : 'plain'}">${esc(val)}</span>`;
     return `<div class="field"><span class="k">${esc(f.label)}</span>${v}
       <span class="btns">${f.kind === 'secret' ? `<button class="icon" data-toggle title="보기/숨기기">${ico('eye')}</button>` : ''}<button class="icon" data-copy="${esc(val)}" title="복사">${ico('copy')}</button></span></div>`;
@@ -524,15 +544,17 @@ function renderForm() {
   if (!menuOf(r.type)) r.type = menus()[0].id;
   const form = $('#detail-form');
   const typeOpts = menus().map(m => `<option value="${m.id}" ${m.id === r.type ? 'selected' : ''}>${esc(m.label)}</option>`).join('');
-  const catOpts = ['<option value="">미분류</option>', ...state.data.categories.map(c => `<option value="${esc(c)}" ${c === r.category ? 'selected' : ''}>${esc(c)}</option>`)].join('');
+  const catOptsFor = (type, sel) => ['<option value="">미분류</option>',
+    ...categoriesOf(type).map(c => `<option value="${esc(c)}" ${c === sel ? 'selected' : ''}>${esc(c)}</option>`)].join('');
+  const hideTitle = !!menuOf(r.type)?.hideTitle;
   form.innerHTML = `
     <div class="card">
       <h2>${r.id ? '항목 편집' : '새 항목'}</h2>
       <div class="form-row">
         <label>주메뉴 <select name="type">${typeOpts}</select></label>
-        <label>카테고리 <select name="category">${catOpts}</select></label>
+        <label>카테고리 <select name="category">${catOptsFor(r.type, r.category)}</select></label>
       </div>
-      <label>제목 <input type="text" name="title" required value="${esc(r.title)}" placeholder="예: 회사 그룹웨어, 국민은행"></label>
+      <label id="title-row" ${hideTitle ? 'hidden' : ''}>제목 <input type="text" name="title" value="${esc(r.title)}" placeholder="예: 회사 그룹웨어, 국민은행"></label>
       <div id="type-fields"></div>
       <label>Memo <textarea name="notes">${esc(r.notes || '')}</textarea></label>
       <div class="form-actions">
@@ -549,15 +571,45 @@ function renderForm() {
         <button type="button" class="icon" data-eye title="보기/숨기기">${ico('eye')}</button><button type="button" class="icon" data-gen title="생성기">${ico('dice')}</button></div></label>`;
       if (f.kind === 'select') {
         const opts = (f.options || []).map(o => `<option value="${esc(o)}" ${o === raw ? 'selected' : ''}>${esc(o)}</option>`).join('');
-        return `<label>${label}<select name="f_${f.key}"><option value="">선택</option>${opts}</select></label>`;
+        return `<label>${label}<select name="f_${f.key}" ${f.auto ? `data-auto="${f.auto}"` : ''}><option value="">선택</option>${opts}</select></label>`;
       }
-      if (f.kind === 'date' || f.kind === 'yearly') return `<label>${label}${f.kind === 'yearly' ? ' <span class="muted">(매년 반복)</span>' : ''}<input type="date" name="f_${f.key}" value="${v}"></label>`;
+      if (f.kind === 'memo') return `<label>${label}<textarea name="f_${f.key}" rows="4" placeholder="한 줄에 하나씩 적어 주세요">${v}</textarea></label>`;
+      if (f.kind === 'date' || f.kind === 'yearly') return `<label>${label}${f.kind === 'yearly' ? ' <span class="muted">(매년 반복)</span>' : ''}
+        <span class="date-wrap"><input type="date" name="f_${f.key}" value="${v}" min="${DATE_MIN}" max="${DATE_MAX}">${f.kind === 'yearly' ? `<span class="date-hint" data-hint-for="${f.key}"></span>` : ''}</span></label>`;
       return `<label>${label}<input type="${f.kind === 'url' ? 'url' : 'text'}" name="f_${f.key}" value="${v}" ${f.kind === 'url' ? 'placeholder="https://"' : ''}></label>`;
     }).join('');
+    updateDateHints();
   };
+  /** 날짜 옆 요일 안내와 띠 자동 채움 */
+  function updateDateHints() {
+    const cal = form.querySelector('[name=f_calendar]');
+    for (const el of form.querySelectorAll('input[type=date]')) {
+      const hintEl = form.querySelector(`[data-hint-for="${el.name.slice(2)}"]`);
+      if (hintEl) hintEl.textContent = dateHint(el.value, cal ? cal.value : '');
+    }
+    const zodiacEl = form.querySelector('[data-auto=zodiac]');
+    const dateEl = form.querySelector('[name=f_date]');
+    if (zodiacEl && dateEl && dateEl.value && !zodiacEl.value) zodiacEl.value = zodiacOf(dateEl.value) || '';
+  }
   drawFields(r.type, r.fields || {});
-  form.querySelector('[name=type]').addEventListener('change', e => drawFields(e.target.value, collectFields(form)));
-  setTimeout(() => form.querySelector('[name=title]').focus(), 30);
+  form.addEventListener('change', e => {
+    if (e.target.type === 'date') clampDateInput(e.target);
+    if (e.target.type === 'date' || e.target.name === 'f_calendar') updateDateHints();
+    if (e.target.name === 'f_date') {
+      const z = form.querySelector('[data-auto=zodiac]');
+      if (z) z.value = zodiacOf(e.target.value) || '';
+    }
+  });
+  form.querySelector('[name=type]').addEventListener('change', e => {
+    const type = e.target.value;
+    form.querySelector('[name=category]').innerHTML = catOptsFor(type, form.querySelector('[name=category]').value);
+    $('#title-row').hidden = !!menuOf(type)?.hideTitle;
+    drawFields(type, collectFields(form));
+  });
+  setTimeout(() => {
+    const first = hideTitle ? form.querySelector('#type-fields input, #type-fields select, #type-fields textarea') : form.querySelector('[name=title]');
+    if (first) first.focus();
+  }, 30);
 }
 function collectFields(form) {
   const out = {};
@@ -574,11 +626,14 @@ function cancelEdit() { state.editing = false; if (state.selectedId && !current(
 $('#detail-form').addEventListener('submit', async e => {
   e.preventDefault();
   const form = e.target, r = current(), now = new Date().toISOString();
+  const type = form.type.value, fields = collectFields(form);
+  const menu = menuOf(type);
+  const title = composeTitle(menu, fields, form.title.value.trim());
   const rec = {
-    id: r ? r.id : uid(), type: form.type.value, title: form.title.value.trim(), category: form.category.value,
-    notes: form.notes.value, fields: collectFields(form), favorite: r ? !!r.favorite : false, createdAt: r ? r.createdAt : now, updatedAt: now,
+    id: r ? r.id : uid(), type, title, category: form.category.value,
+    notes: form.notes.value, fields, favorite: r ? !!r.favorite : false, createdAt: r ? r.createdAt : now, updatedAt: now,
   };
-  if (!rec.title) return;
+  if (!rec.title) { toast(menu?.hideTitle ? '내용을 한 가지 이상 입력해 주세요.' : '제목을 입력해 주세요.', 'err'); return; }
   if (r) Object.assign(r, rec); else state.data.records.push(rec);
   state.selectedId = rec.id; state.editing = false;
   if (await persist()) { renderAll(); toast('저장했습니다.'); }
@@ -596,7 +651,11 @@ $('#cat-cancel').addEventListener('click', () => $('#dlg-category').close());
 $('#form-category').addEventListener('submit', async e => {
   const name = $('#cat-name').value.trim();
   if (!name) return e.preventDefault();
-  if (!state.data.categories.includes(name)) { state.data.categories.push(name); await persist(); }
+  const inMenu = state.view.kind === 'type' ? state.view.value : null;
+  const m = inMenu ? menuOf(inMenu) : null;
+  if (m) { m.categories ||= []; if (!m.categories.includes(name)) m.categories.push(name); }
+  else if (!state.data.categories.includes(name)) state.data.categories.push(name);
+  await persist();
   renderSidebar(); if (state.editing) renderForm();
 });
 
@@ -708,9 +767,11 @@ function openMenuEditor() {
 }
 function renderMenuEditor() {
   const m = menuOf(me.sel);
-  $('#me-menus').innerHTML = menus().map(x => `<li data-id="${x.id}" class="${x.id === me.sel ? 'active' : ''}"><span>${ico(x.icon)} ${esc(x.label)}</span></li>`).join('');
+  refreshMenuList();
   $('.me-right').hidden = !m; if (!m) return;
   $('#me-icon-btn').innerHTML = ico(m.icon); $('#me-label').value = m.label;
+  $('#me-categories').value = (m.categories || []).join(', ');
+  $('#me-cat-hint').textContent = (m.categories && m.categories.length) ? '' : '(비우면 공용 카테고리를 사용합니다)';
   $$('#me-icon-grid button').forEach(b => b.classList.toggle('active', b.dataset.icon === m.icon));
   const idx = menus().indexOf(m); $('#me-up').disabled = idx === 0; $('#me-down').disabled = idx === menus().length - 1;
   const kindOpts = k => Object.entries(FIELD_KINDS).map(([v, l]) => `<option value="${v}" ${v === k ? 'selected' : ''}>${l}</option>`).join('');
@@ -722,9 +783,35 @@ function renderMenuEditor() {
       <td><button type="button" class="icon" data-up title="위로">${ico('chevronUp')}</button><button type="button" class="icon" data-down title="아래로">${ico('chevronDown')}</button><button type="button" class="icon danger" data-del title="삭제">${ico('x')}</button></td>
     </tr>`).join('');
 }
-async function menusChanged() { await persist(); renderSidebar(); renderList(); if (state.editing) renderForm(); else renderDetail(); }
+/** 편집 중이면 입력값을 유지한 채 폼을 다시 그린다 */
+function renderFormPreserving() {
+  const form = $('#detail-form');
+  if (!form.type) return renderForm();
+  const keep = { type: form.type.value, category: form.category.value, title: form.title.value, notes: form.notes.value, fields: collectFields(form) };
+  renderForm();
+  const f2 = $('#detail-form');
+  if (f2.type) {
+    f2.type.value = keep.type; f2.type.dispatchEvent(new Event('change'));
+    f2.category.value = keep.category; f2.title.value = keep.title; f2.notes.value = keep.notes;
+    for (const [k, v] of Object.entries(keep.fields)) { const el = f2.querySelector(`[name="f_${k}"]`); if (el) el.value = v; }
+  }
+}
+let viewRefreshTimer = null;
+/** 주메뉴 편집 창 뒤의 화면을 모아서 한 번만 갱신한다 */
+function scheduleViewRefresh() {
+  clearTimeout(viewRefreshTimer);
+  viewRefreshTimer = setTimeout(() => {
+    viewRefreshTimer = null;
+    renderSidebar(); renderList();
+    if (state.editing) renderFormPreserving(); else renderDetail();
+  }, 300);
+}
+async function menusChanged() { await persist(); renderSidebar(); renderList(); if (state.editing) renderFormPreserving(); else renderDetail(); }
+function refreshMenuList() {
+  $('#me-menus').innerHTML = menus().map(x => `<li data-id="${x.id}" class="${x.id === me.sel ? 'active' : ''}"><span>${ico(x.icon)} ${esc(x.label)}</span></li>`).join('');
+}
 $('#btn-edit-menus').addEventListener('click', openMenuEditor);
-$('#me-close').addEventListener('click', () => $('#dlg-menus').close());
+$('#me-close').addEventListener('click', async () => { $('#dlg-menus').close(); await flushPersist(); renderSidebar(); renderList(); });
 $('#me-menus').addEventListener('click', e => { const li = e.target.closest('li'); if (li) { me.sel = li.dataset.id; renderMenuEditor(); } });
 $('#me-add-menu').addEventListener('click', async () => {
   const m = { id: 'm_' + uid(), label: '새 주메뉴', icon: 'folder', fields: [{ key: 'f_' + uid(), label: '항목 1', kind: 'text' }] };
@@ -748,11 +835,25 @@ async function moveMenu(delta) {
 }
 $('#me-up').addEventListener('click', () => moveMenu(-1));
 $('#me-down').addEventListener('click', () => moveMenu(1));
-$('#me-label').addEventListener('change', async e => { const m = menuOf(me.sel); if (!m) return; m.label = e.target.value.trim() || m.label; renderMenuEditor(); await menusChanged(); });
+$('#me-label').addEventListener('input', e => {
+  const m = menuOf(me.sel); if (!m) return;
+  m.label = e.target.value.trim() || m.label;
+  refreshMenuList(); schedulePersist(); scheduleViewRefresh();
+});
+$('#me-categories').addEventListener('input', e => {
+  const m = menuOf(me.sel); if (!m) return;
+  const list = e.target.value.split(',').map(x => x.trim()).filter(Boolean);
+  if (list.length) m.categories = list; else delete m.categories;
+  $('#me-cat-hint').textContent = list.length ? '' : '(비우면 공용 카테고리를 사용합니다)';
+  schedulePersist(); scheduleViewRefresh();
+});
 $('#me-icon-btn').addEventListener('click', () => { $('#me-icon-grid').hidden = !$('#me-icon-grid').hidden; });
 $('#me-icon-grid').addEventListener('click', async e => {
   const b = e.target.closest('button[data-icon]'); const m = menuOf(me.sel); if (!b || !m) return;
-  m.icon = b.dataset.icon; $('#me-icon-grid').hidden = true; renderMenuEditor(); await menusChanged();
+  m.icon = b.dataset.icon; $('#me-icon-grid').hidden = true;
+  $('#me-icon-btn').innerHTML = ico(m.icon);
+  $$('#me-icon-grid button').forEach(x => x.classList.toggle('active', x.dataset.icon === m.icon));
+  refreshMenuList(); schedulePersist(); scheduleViewRefresh();
 });
 $('#me-add-field').addEventListener('click', async () => {
   const m = menuOf(me.sel); if (!m) return;
@@ -760,14 +861,19 @@ $('#me-add-field').addEventListener('click', async () => {
   renderMenuEditor(); await menusChanged();
   const inputs = $$('#me-fields input[data-f=label]'); const last = inputs[inputs.length - 1]; if (last) { last.focus(); last.select(); }
 });
-$('#me-fields').addEventListener('change', async e => {
+$('#me-fields').addEventListener('input', e => {
   const m = menuOf(me.sel); const tr = e.target.closest('tr'); if (!m || !tr) return;
   const f = m.fields[Number(tr.dataset.i)]; if (!f) return;
   const what = e.target.dataset.f;
   if (what === 'label') f.label = e.target.value.trim() || f.label;
-  else if (what === 'kind') { f.kind = e.target.value; if (f.kind === 'select' && !f.options) f.options = []; }
-  else if (what === 'options') f.options = e.target.value.split(',').map(x => x.trim()).filter(Boolean);
-  renderMenuEditor(); await menusChanged();
+  else if (what === 'kind') {
+    f.kind = e.target.value;
+    if (f.kind === 'select' && !f.options) f.options = [];
+    const opt = tr.querySelector('[data-f=options]');
+    if (opt) opt.disabled = f.kind !== 'select';   // 행을 다시 그리지 않고 입력 상태만 바꾼다
+  } else if (what === 'options') f.options = e.target.value.split(',').map(x => x.trim()).filter(Boolean);
+  else return;
+  schedulePersist(); scheduleViewRefresh();
 });
 $('#me-fields').addEventListener('click', async e => {
   const btn = e.target.closest('button'); const tr = e.target.closest('tr'); const m = menuOf(me.sel);
@@ -794,7 +900,15 @@ document.addEventListener('keydown', e => {
   else if (e.key === 'Escape' && state.editing && !$$('dialog[open]').length) cancelEdit();
 });
 
+/* 버전 표시 */
+async function showVersion() {
+  const v = await window.vault.version();
+  $('#app-version').textContent = v;
+  $('#about-version').textContent = v;
+}
+
 /* 시작 */
 hydrateIcons();
+showVersion();
 applyAppearance();
 showAuth();

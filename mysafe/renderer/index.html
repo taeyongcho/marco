@@ -60,7 +60,6 @@
 <section id="screen-main" class="screen main" hidden>
   <aside class="sidebar">
     <div class="brand"><img class="brand-logo" src="icon.svg" alt=""><span class="brand-text">MySafe<small id="brand-user" hidden></small></span></div>
-    <button id="btn-new" class="primary new-btn" title="새 항목 (Ctrl+N)" data-ico="plus"> 새 항목</button>
 
     <div class="sidebar-scroll">
     <h3>보기</h3>
@@ -74,7 +73,7 @@
     <h3>주메뉴 <button id="btn-edit-menus" class="icon" title="주메뉴/항목 편집">Edit</button></h3>
     <ul id="nav-types" class="nav"></ul>
 
-    <h3>카테고리 <button id="btn-add-category" class="icon" title="카테고리 추가" data-ico="plus"></button></h3>
+    <h3>카테고리 <span id="cat-scope" class="scope"></span> <button id="btn-add-category" class="icon" title="카테고리 추가" data-ico="plus"></button></h3>
     <ul id="nav-categories" class="nav"></ul>
     </div>
 
@@ -98,6 +97,7 @@
       </select>
       <button id="btn-viewmode" class="icon" title="목록 표시 방식"></button>
     </div>
+    <div class="list-new"><button id="btn-new" class="primary new-btn" title="새 항목 (Ctrl+N)" data-ico="plus"> 새 항목</button></div>
     <div class="list-header"><span id="list-title">전체 항목</span><span id="list-count" class="muted"></span></div>
     <ul id="records"></ul>
     <div id="list-empty" class="empty" hidden><div class="empty-ico" data-ico="archive"></div><p>항목이 없습니다.<br><b>새 항목</b> 버튼으로 추가하세요.</p></div>
@@ -199,6 +199,12 @@
             <p class="muted tiny">모든 데이터는 이 PC(또는 지정한 폴더)의 볼트 파일에 AES-256-GCM으로 암호화되어 저장되며, 외부로 전송되지 않습니다.</p>
             <p class="muted tiny">© 2026 IT Brain Co., Ltd. All rights reserved.</p>
             <hr>
+            <h3>변경 이력</h3>
+            <div class="changelog tiny">
+              <p><b>1.1.0</b> · 주메뉴 항목 개편(시스템로그인 e-Mail, 뱅킹 예금주·자동이체 리스트, 카드 결제은행·결제일·만료일 달력, 보험 자동이체 정보, 기념일 띠·요일), 주메뉴별 카테고리, 새 항목 버튼 위치 이동, 주메뉴 전환 시 오른쪽 화면 정리, 입력 중 멈춤 현상 개선</p>
+              <p><b>1.0.0</b> · 첫 배포. 볼트 암호화, 주메뉴 편집, D-day와 일정 알림, 테마·글꼴, 볼트 위치 지정, 라이선스와 날짜 되돌림 감지</p>
+            </div>
+            <hr>
             <h3>라이선스</h3>
             <p id="about-license" class="tiny"></p>
             <div class="row"><button type="button" id="btn-license2">라이선스 등록/변경</button><button type="button" id="btn-license-clear" class="danger" hidden>라이선스 해제</button></div>
@@ -228,6 +234,8 @@
         <button type="button" id="me-del-menu" class="danger" title="주메뉴 삭제">삭제</button>
       </div>
       <div id="me-icon-grid" class="icon-grid" hidden></div>
+      <label class="me-cat">카테고리 <span id="me-cat-hint" class="muted tiny"></span>
+        <input type="text" id="me-categories" placeholder="쉼표로 구분 (예: 가족, 친구, 업무)"></label>
       <table id="me-fields">
         <thead><tr><th>항목 이름</th><th>형식</th><th>선택지 (형식이 「선택」일 때, 쉼표 구분)</th><th></th></tr></thead>
         <tbody></tbody>
@@ -261,6 +269,7 @@
 </dialog>
 
 <script src="icons.js"></script>
+<script src="menus.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
