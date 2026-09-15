@@ -101,6 +101,17 @@ function registerIpc() {
     return ok(licenseInfo());
   });
   ipcMain.handle('license:clear', () => { const cfg = readConfig(); delete cfg.license; writeConfig(cfg); return ok(licenseInfo()); });
+  ipcMain.handle('app:version', () => app.getVersion());
+  /** 구버전 볼트를 새 구성으로 올리기 전에 원본을 한 번 복사해 둔다 */
+  ipcMain.handle('vault:backup', () => {
+    try {
+      if (!fs.existsSync(vault.filePath)) return ok(null);
+      const stamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      const target = `${vault.filePath}.${stamp}.bak`;
+      if (!fs.existsSync(target)) fs.copyFileSync(vault.filePath, target);
+      return ok(target);
+    } catch (e) { return fail(e); }
+  });
   ipcMain.handle('vault:info', () => vaultInfo());
   ipcMain.handle('vault:exists', () => vault.exists());
   ipcMain.handle('vault:create', (_e, pw) => { try { return ok(vault.create(pw)); } catch (e) { return fail(e); } });
