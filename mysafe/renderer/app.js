@@ -976,6 +976,11 @@ async function showVersion() {
   const v = await window.vault.version();
   $('#app-version').textContent = v;
   $('#about-version').textContent = v;
+  // 설치 폴더에 있던 볼트를 안전한 곳으로 옮겼으면 알린다
+  const r = await window.vault.rescued();
+  if (r) {
+    setTimeout(() => toast(`볼트 파일이 프로그램 설치 폴더에 있어 안전한 위치로 옮겼습니다.\n${r.to}\n설치 폴더는 업데이트할 때 지워지는 곳입니다.`, 'info', 12000), 400);
+  }
 }
 
 /* 시작 */

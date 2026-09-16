@@ -81,6 +81,32 @@ function isUnsafeDir(dir) {
   const risky = [path.dirname(app.getPath('exe')), app.getPath('temp')];
   return risky.some(r => { const n = norm(r); return target === n || target.startsWith(n + path.sep); });
 }
+/** 설치 폴더 안에 있는 볼트를 안전한 곳으로 옮긴다.
+ *  업데이트 설치가 설치 폴더를 통째로 지우므로, 거기 두면 다음 업데이트에서 사라진다. */
+let rescued = null;   // { from, to }
+function rescueVaultFromInstallDir() {
+  try {
+    const from = vault.filePath;
+    if (from === defaultVaultPath()) return;
+    if (!isUnsafeDir(path.dirname(from))) return;
+    const dir = app.getPath('userData');
+    fs.mkdirSync(dir, { recursive: true });
+    let to = defaultVaultPath();
+    if (fs.existsSync(to)) to = path.join(dir, `vault-${stamp()}.mv`);
+    if (fs.existsSync(from)) {
+      fs.copyFileSync(from, to);
+      try { fs.renameSync(from, `${from}.moved-${stamp()}.bak`); } catch (_) { /* 원본 유지 */ }
+    } else if (!fs.existsSync(to)) {
+      return;   // 옮길 파일도, 쓸 파일도 없다
+    }
+    rememberPath(from);
+    vault = new Vault(to);
+    const cfg = readConfig();
+    if (to === defaultVaultPath()) delete cfg.vaultPath; else cfg.vaultPath = to;
+    writeConfig(cfg);
+    rescued = { from, to };
+  } catch (_) { /* 옮기지 못해도 실행은 계속한다 */ }
+}
 function vaultInfo() {
   const p = vault.filePath;
   const isDefault = p === defaultVaultPath();
@@ -160,6 +186,7 @@ function registerIpc() {
   });
   ipcMain.handle('license:clear', () => { const cfg = readConfig(); delete cfg.license; writeConfig(cfg); return ok(licenseInfo()); });
   ipcMain.handle('app:version', () => app.getVersion());
+  ipcMain.handle('vault:rescued', () => { const r = rescued; rescued = null; return r; });
   /** 구버전 볼트를 새 구성으로 올리기 전에 원본을 한 번 복사해 둔다 */
   ipcMain.handle('vault:backup', () => {
     try {
@@ -368,6 +395,7 @@ app.whenReady().then(() => {
   migrateOldDataDir();
   configPath = path.join(app.getPath('userData'), 'config.json');
   vault = new Vault(currentVaultPath());
+  rescueVaultFromInstallDir();
   registerIpc();
   createWindow();
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
