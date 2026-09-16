@@ -1,7 +1,7 @@
 {
   "name": "mysafe",
   "productName": "MySafe",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "MySafe - IT Brain Co., Ltd. 로컬 비밀번호 관리자 (Windows)",
   "main": "src/main.js",
   "author": "IT Brain Co., Ltd.",
