@@ -6,7 +6,7 @@ const $$ = (s) => Array.from(document.querySelectorAll(s));
 
 const state = {
   data: null, view: { kind: 'view', value: 'all' }, selectedId: null, editing: false, query: '',
-  sort: 'title', viewMode: 'compact', lockTimer: null, genTarget: null, info: null,
+  sort: 'title', viewMode: 'compact', lockTimer: null, genTarget: null, info: null, forceSetup: false,
 };
 
 /* ---------- 로컬(PC별) UI 환경설정 ---------- */
@@ -195,13 +195,18 @@ async function showAuth() {
   $('#auth-error').hidden = true;
   const info = await window.vault.info(); state.info = info;
   $('#auth-path').textContent = '볼트 파일: ' + info.path;
-  const missing = !info.exists && !info.isDefault;   // 지정한 위치(USB 등)에 파일이 없음
+  // 지정한 위치에 파일이 없거나, 되살릴 수 있는 볼트가 남아 있으면 복구 화면을 보여 준다.
+  // (예전에 쓰던 볼트가 있는데 빈 볼트를 새로 만들게 두면 데이터를 잃은 것처럼 보인다)
+  const cands = info.candidates || [];
+  let missing = !info.exists && (!info.isDefault || cands.length > 0);
+  if (state.forceSetup && !info.exists && info.isDefault) { missing = false; state.forceSetup = false; }
   // 라이선스가 없거나 만료됐거나 시계를 되돌린 경우 잠금 해제를 막는다 (데이터는 그대로 보관)
   const blocked = !!license.clockIssue || !license.licensed || license.expired;
   $('#auth-locked-lic').hidden = !blocked;
   $('#form-setup').hidden = blocked || info.exists || missing;
   $('#form-unlock').hidden = blocked || !info.exists;
   $('#auth-missing').hidden = blocked || !missing;
+  if (missing) renderCandidates(info, cands);
   if (blocked) {
     $('#btn-license-required').hidden = !!license.clockIssue;
     $('#btn-clock-recheck').hidden = !license.clockIssue;
@@ -225,6 +230,34 @@ async function showAuth() {
   input.value = ''; setTimeout(() => input.focus(), 50);
 }
 function authError(msg) { const el = $('#auth-error'); el.textContent = msg; el.hidden = false; }
+
+/* ---------- 볼트 파일 되찾기 ---------- */
+const CAND_LABEL = { default: '기본 위치', previous: '이전 위치', backup: '백업 파일', auto: '자동 백업' };
+function fmtSize(n) { return n < 1024 ? n + ' B' : n < 1048576 ? (n / 1024).toFixed(1) + ' KB' : (n / 1048576).toFixed(1) + ' MB'; }
+function candidateHtml(c, withDelete) {
+  const del = withDelete && (c.kind === 'backup' || c.kind === 'auto')
+    ? `<button type="button" class="icon danger cand-del" data-del-cand="${esc(c.path)}" title="이 백업 파일 지우기">${ico('trash')}</button>` : '';
+  return `<div class="cand-row"><button type="button" data-cand="${esc(c.path)}">
+    <span class="cand-kind">${esc(CAND_LABEL[c.kind] || '파일')}</span>
+    <span class="cand-meta"><span class="cand-when">${esc(fmtDate(c.mtime))} · ${esc(fmtSize(c.size))}</span>
+      <div class="cand-path">${esc(c.path)}</div></span></button>${del}</div>`;
+}
+function renderCandidates(info, cands) {
+  $('#missing-path').textContent = info.path;
+  $('#candidates').innerHTML = cands.length
+    ? `<p class="muted tiny">되살릴 수 있는 볼트 파일 ${cands.length}개를 찾았습니다. 최근 것부터 보여 줍니다.</p>` + cands.map(candidateHtml).join('')
+    : '<p class="empty-note">되살릴 수 있는 파일을 찾지 못했습니다. 아래에서 직접 찾아 주세요.</p>';
+}
+async function useCandidate(p, afterOk) {
+  const r = await window.vault.useCandidate(p);
+  if (!r.ok) { authError(r.error); return false; }
+  if (afterOk) afterOk();
+  return true;
+}
+$('#candidates').addEventListener('click', async e => {
+  const b = e.target.closest('button[data-cand]'); if (!b) return;
+  if (await useCandidate(b.dataset.cand)) showAuth();
+});
 
 $('#setup-pw').addEventListener('input', e => paintStrength($('#setup-strength'), e.target.value));
 $$('button[data-eye-for]').forEach(b => b.addEventListener('click', () => { const i = $('#' + b.dataset.eyeFor); i.type = i.type === 'password' ? 'text' : 'password'; }));
@@ -252,7 +285,12 @@ async function openExisting() {
 }
 $('#btn-open-existing').addEventListener('click', openExisting);
 $('#btn-open-existing2').addEventListener('click', openExisting);
-$('#btn-use-default').addEventListener('click', async () => { await window.vault.useDefaultLocation(); showAuth(); });
+$('#btn-use-default').addEventListener('click', async () => {
+  if (!confirm('기존 데이터 없이 빈 볼트를 새로 만듭니다.\n\n예전에 쓰던 볼트 파일이 어딘가에 남아 있다면 지금 되살리는 편이 좋습니다. 그래도 새로 시작할까요?')) return;
+  await window.vault.useDefaultLocation();
+  state.forceSetup = true;
+  showAuth();
+});
 
 /* ---------- 메인 ---------- */
 let migratedOnOpen = false;   // 이번 실행에서 주메뉴 구성이 갱신되었는지
@@ -692,6 +730,7 @@ $('#gen-use').addEventListener('click', () => {
 async function refreshPathBox() {
   const info = await window.vault.info(); state.info = info;
   $('#set-path').textContent = info.path + (info.isDefault ? '  (기본 위치)' : '');
+  $('#set-backups-dir').textContent = info.backupsDir;
   $('#btn-move-default').hidden = info.isDefault;
 }
 $('#btn-settings').addEventListener('click', async () => {
@@ -732,14 +771,46 @@ $('#btn-change-pw').addEventListener('click', async () => {
 $('#btn-move-vault').addEventListener('click', async () => {
   const r = await window.vault.moveTo();
   if (!r.ok) return toast(r.error, 'err', 5000);
-  if (r.data) { await refreshPathBox(); toast('볼트 파일을 옮겼습니다.'); }
+  if (r.data) {
+    await refreshPathBox();
+    toast('볼트 파일을 옮겼습니다.' + (r.data.kept ? ' 이전 위치의 파일은 백업으로 남겨 두었습니다.' : ''), 'ok', 6000);
+  }
 });
 $('#btn-move-default').addEventListener('click', async () => {
   const r = await window.vault.moveToDefault();
   if (!r.ok) return toast(r.error, 'err', 5000);
-  await refreshPathBox(); toast('기본 위치로 되돌렸습니다.');
+  await refreshPathBox();
+  toast('기본 위치로 되돌렸습니다.' + (r.data && r.data.kept ? ' 이전 위치의 파일은 백업으로 남겨 두었습니다.' : ''), 'ok', 6000);
 });
 $('#btn-show-folder').addEventListener('click', () => window.vault.showInFolder());
+$('#btn-open-backups').addEventListener('click', () => window.vault.openBackupsDir());
+$('#btn-restore').addEventListener('click', async () => {
+  const box = $('#restore-list');
+  const cands = await window.vault.candidates();
+  box.hidden = false;
+  box.innerHTML = cands.length
+    ? '<p class="muted tiny">고른 파일로 바꾸면 지금 볼트는 백업으로 남겨 둡니다. 바꾼 뒤에는 그 파일의 마스터 비밀번호로 잠금을 풉니다. 필요 없는 백업은 휴지통 단추로 지울 수 있습니다.</p>' + cands.map(c => candidateHtml(c, true)).join('')
+    : '<p class="empty-note">되살릴 수 있는 파일이 없습니다.</p>';
+});
+$('#restore-list').addEventListener('click', async e => {
+  const d = e.target.closest('button[data-del-cand]');
+  if (d) {
+    if (!confirm('이 백업 파일을 지울까요? 되돌릴 수 없습니다.')) return;
+    const r = await window.vault.deleteBackup(d.dataset.delCand);
+    if (!r.ok) return toast(r.error, 'err', 5000);
+    d.closest('.cand-row').remove(); toast('백업 파일을 지웠습니다.');
+    return;
+  }
+  const b = e.target.closest('button[data-cand]'); if (!b) return;
+  if (!confirm('이 파일로 되돌릴까요?\n\n지금 쓰고 있는 볼트는 백업으로 남겨 두며, 되돌린 뒤에는 그 파일의 마스터 비밀번호로 잠금을 풀어야 합니다.')) return;
+  const r = await window.vault.useCandidate(b.dataset.cand);
+  if (!r.ok) return toast(r.error, 'err', 6000);
+  $('#dlg-settings').close();
+  state.data = null; state.selectedId = null; state.editing = false;
+  clearTimeout(state.lockTimer);
+  showAuth();
+  toast('백업 파일로 되돌렸습니다. 해당 볼트의 마스터 비밀번호를 입력해 주세요.', 'info', 7000);
+});
 $('#btn-export').addEventListener('click', async () => {
   const r = await window.vault.exportCsv(state.data.records);
   if (!r.ok) toast('내보내기 실패: ' + r.error, 'err'); else if (r.data) toast('CSV로 내보냈습니다.');
@@ -905,6 +976,11 @@ async function showVersion() {
   const v = await window.vault.version();
   $('#app-version').textContent = v;
   $('#about-version').textContent = v;
+  // 설치 폴더에 있던 볼트를 안전한 곳으로 옮겼으면 알린다
+  const r = await window.vault.rescued();
+  if (r) {
+    setTimeout(() => toast(`볼트 파일이 프로그램 설치 폴더에 있어 안전한 위치로 옮겼습니다.\n${r.to}\n설치 폴더는 업데이트할 때 지워지는 곳입니다.`, 'info', 12000), 400);
+  }
 }
 
 /* 시작 */

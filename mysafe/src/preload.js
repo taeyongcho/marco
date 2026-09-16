@@ -4,7 +4,12 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('vault', {
   info: () => ipcRenderer.invoke('vault:info'),
   version: () => ipcRenderer.invoke('app:version'),
+  rescued: () => ipcRenderer.invoke('vault:rescued'),
   backup: () => ipcRenderer.invoke('vault:backup'),
+  candidates: () => ipcRenderer.invoke('vault:candidates'),
+  useCandidate: (p) => ipcRenderer.invoke('vault:useCandidate', p),
+  deleteBackup: (p) => ipcRenderer.invoke('vault:deleteBackup', p),
+  openBackupsDir: () => ipcRenderer.invoke('vault:backupsDir'),
   exists: () => ipcRenderer.invoke('vault:exists'),
   create: (pw) => ipcRenderer.invoke('vault:create', pw),
   unlock: (pw) => ipcRenderer.invoke('vault:unlock', pw),

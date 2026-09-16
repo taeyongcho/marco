@@ -269,3 +269,16 @@ button.link:hover { background: none; color: var(--accent-2); }
 .me-cat input { margin-top: .3em; }
 .changelog p { margin: 6px 0; color: var(--muted); line-height: 1.5; }
 .changelog b { color: var(--text); }
+
+/* ===== 볼트 복구 목록 ===== */
+.candidates { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; text-align: left; }
+.cand-row { display: flex; align-items: stretch; gap: 4px; }
+.cand-row > button[data-cand] { flex: 1; min-width: 0; }
+.cand-del { flex: 0 0 auto; align-self: center; }
+.candidates button { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: .6em .8em; }
+.candidates .cand-kind { font-size: .75em; font-weight: 700; padding: .15em .55em; border-radius: 999px; background: var(--accent-soft); color: var(--active-text); white-space: nowrap; }
+.candidates .cand-meta { min-width: 0; flex: 1; }
+.candidates .cand-path { font-size: .8em; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: Consolas, monospace; }
+.candidates .cand-when { font-size: .85em; font-weight: 600; }
+.candidates .empty-note { color: var(--muted); font-size: .86em; }
+#missing-path { font-family: Consolas, monospace; word-break: break-all; }

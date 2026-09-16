@@ -44,9 +44,12 @@
     </div>
 
     <div id="auth-missing" hidden>
-      <p class="error">볼트 파일을 찾을 수 없습니다. USB나 클라우드 폴더가 연결되어 있는지 확인하세요.</p>
-      <button type="button" id="btn-open-existing2" class="ghost big">다른 볼트 파일 열기…</button>
-      <button type="button" id="btn-use-default" class="ghost big">기본 위치의 볼트 사용</button>
+      <p class="error"><b>볼트 파일을 찾을 수 없습니다.</b></p>
+      <p class="muted tiny" id="missing-path"></p>
+      <p class="muted tiny">USB나 클라우드 폴더라면 연결되어 있는지 먼저 확인하세요. 아래에서 되살릴 파일을 고를 수도 있습니다.</p>
+      <div id="candidates" class="candidates"></div>
+      <button type="button" id="btn-open-existing2" class="ghost big">다른 볼트 파일 직접 찾기…</button>
+      <button type="button" id="btn-use-default" class="ghost big">새 볼트로 시작 (기존 데이터 없이)</button>
     </div>
 
     <p id="auth-error" class="error" hidden></p>
@@ -188,6 +191,12 @@
         <div class="row"><button type="button" id="btn-export">CSV 내보내기</button><button type="button" id="btn-import">CSV 가져오기</button></div>
         <p class="warn tiny">내보낸 CSV는 암호화되지 않습니다. 사용 후 안전하게 삭제하세요.</p>
         <p class="muted tiny">전체 백업은 볼트 파일(vault.mv) 자체를 복사하는 것이 가장 안전합니다. 「저장 위치 → 폴더 열기」에서 복사하세요.</p>
+        <hr>
+        <h3>자동 백업</h3>
+        <p class="muted tiny">잠금을 풀 때 하루 한 번, 볼트를 아래 폴더에도 복사해 둡니다. 최근 10개를 보관하며, 볼트를 둔 폴더가 통째로 사라져도 여기서 되살릴 수 있습니다.</p>
+        <div class="path-box" id="set-backups-dir"></div>
+        <div class="row wrap"><button type="button" id="btn-open-backups">백업 폴더 열기</button><button type="button" id="btn-restore">백업에서 복원…</button></div>
+        <div id="restore-list" class="candidates" hidden></div>
       </section>
       <section data-tab="about" hidden>
         <div class="about">
@@ -201,6 +210,8 @@
             <hr>
             <h3>변경 이력</h3>
             <div class="changelog tiny">
+              <p><b>1.1.2</b> · 업데이트 설치가 설치 폴더를 통째로 지우면서 그 안에 둔 볼트 파일이 사라지던 문제를 고쳤습니다. 설치 프로그램이 볼트를 임시 보관했다가 되돌리며, 앱을 켜면 설치 폴더에 있는 볼트를 안전한 위치로 자동으로 옮깁니다.</p>
+              <p><b>1.1.1</b> · 볼트 파일 안전장치. 위치를 옮겨도 이전 파일을 지우지 않고 백업으로 남기며, 잠금 해제 때 하루 한 번 AppData에 자동 백업을 만듭니다. 볼트 파일이 사라지면 되살릴 후보를 찾아 보여 주고, 빈 볼트를 새로 만들어 데이터를 잃는 일이 없도록 막습니다. 프로그램 설치 폴더·임시 폴더는 저장 위치로 고를 수 없습니다.</p>
               <p><b>1.1.0</b> · 주메뉴 항목 개편(시스템로그인 e-Mail, 뱅킹 예금주·자동이체 리스트, 카드 결제은행·결제일·만료일 달력, 보험 자동이체 정보, 기념일 띠·요일), 주메뉴별 카테고리, 새 항목 버튼 위치 이동, 주메뉴 전환 시 오른쪽 화면 정리, 입력 중 멈춤 현상 개선</p>
               <p><b>1.0.0</b> · 첫 배포. 볼트 암호화, 주메뉴 편집, D-day와 일정 알림, 테마·글꼴, 볼트 위치 지정, 라이선스와 날짜 되돌림 감지</p>
             </div>

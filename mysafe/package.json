@@ -1,7 +1,7 @@
 {
   "name": "mysafe",
   "productName": "MySafe",
-  "version": "1.1.0",
+  "version": "1.1.2",
   "description": "MySafe - IT Brain Co., Ltd. 로컬 비밀번호 관리자 (Windows)",
   "main": "src/main.js",
   "author": "IT Brain Co., Ltd.",
@@ -48,7 +48,8 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "MySafe",
-      "language": "1042"
+      "language": "1042",
+      "include": "build/installer.nsh"
     },
     "portable": {
       "artifactName": "MySafe-Portable-${version}.${ext}"
